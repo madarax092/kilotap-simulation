@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KiloTap Simulation</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; background: #1a1a1e; color: #e0e0e0; overflow: hidden; }
@@ -446,8 +448,8 @@
 
   // =====================================================
   //  PART 2: MAPS + HAVERSINE — 8 Collectors, 3 Vehicle Types
-  // =====================================================
-  const DAVAO_CENTER = { lat: 7.071, lng: 125.613 };
+  //  =====================================================
+  const DAVAO_CENTER = [7.071, 125.613];
   const EARTH_RADIUS_KM = 6371;
 
   // 8 collectors across Davao barangays — 3 vehicle types
@@ -472,139 +474,108 @@
     return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  let map = null, householdMarker = null, collectorMarkers = null, polylines = null, distanceLabels = null;
+  // Initialize Leaflet map
+  const map = L.map('map-container', { zoomControl: true, attributionControl: false }).setView(DAVAO_CENTER, 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
-  window.initMap = function() {
-    map = new google.maps.Map(document.getElementById('map-container'), {
-      center: DAVAO_CENTER, zoom: 12,
-      mapTypeControl: true, fullscreenControl: false, streetViewControl: false,
-    });
+  // Household marker — circle with blue fill
+  const hhIcon = L.divIcon({ className: 'hh-marker', html: '<div style="width:16px;height:16px;background:#2563eb;border:2px solid #fff;border-radius:50%;"></div>', iconSize: [16,16], iconAnchor: [8,8] });
+  const householdMarker = L.marker([7.070, 125.613], { icon: hhIcon, draggable: true }).addTo(map);
 
-    // Household marker — blue, draggable
-    householdMarker = new google.maps.Marker({
-      position: { lat: 7.070, lng: 125.613 },
-      map, title: 'Household', draggable: true,
-      animation: google.maps.Animation.DROP,
-      icon: { path: google.maps.SymbolPath.CIRCLE, fillColor: '#2563eb', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2, scale: 9 }
-    });
+  // Collector markers
+  function makeColIcon(color) {
+    return L.divIcon({ className: 'col-marker', html: '<div style="width:12px;height:12px;background:'+color+';border:2px solid #333;border-radius:50%;"></div>', iconSize: [12,12], iconAnchor: [6,6] });
+  }
+  const collectorMarkers = COLLECTORS.map(c => {
+    const marker = L.marker([c.lat, c.lng], { icon: makeColIcon(VEHICLE_COLORS[c.vehicle]), draggable: true }).addTo(map);
+    marker.bindTooltip(c.name + ' (' + c.barangay + ')', { permanent: false, direction: 'top' });
+    marker._collectorId = c.id; marker._barangay = c.barangay; marker._vehicle = c.vehicle; marker._name = c.name;
+    return marker;
+  });
 
-    // Click on map to relocate household
-    map.addListener('click', function(e) {
-      householdMarker.setPosition(e.latLng);
-      updateMapFilter(currentVehicle);
-    });
-
-    // Collector markers
-    collectorMarkers = COLLECTORS.map(c => {
-      const marker = new google.maps.Marker({
-        position: { lat: c.lat, lng: c.lng },
-        map, title: `${c.name} - ${c.barangay} (${c.vehicle})`, draggable: true,
-        icon: { path: google.maps.SymbolPath.CIRCLE, fillColor: VEHICLE_COLORS[c.vehicle], fillOpacity: 1, strokeColor: '#333', strokeWeight: 2, scale: 6 }
-      });
-      marker._collectorId = c.id;
-      marker._barangay = c.barangay;
-      marker._vehicle = c.vehicle;
-      marker._name = c.name;
-      return marker;
-    });
-
-    // Polylines
-    polylines = collectorMarkers.map((_, i) => new google.maps.Polyline({ map, geodesic: true, strokeColor: VEHICLE_COLORS[COLLECTORS[i].vehicle], strokeOpacity: 0.8, strokeWeight: 2, path: [] }));
-    distanceLabels = collectorMarkers.map(() => new google.maps.InfoWindow({ content: '' }));
-
-    // Drag events
-    [householdMarker, ...collectorMarkers].forEach(m => {
-      m.addListener('drag', () => updateMapFilter(currentVehicle));
-      m.addListener('dragend', () => updateMapFilter(currentVehicle));
-    });
-
-    // Coordinate input
-    document.getElementById('coord-input').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        const parts = this.value.split(',').map(s => parseFloat(s.trim()));
-        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-          const pos = { lat: parts[0], lng: parts[1] };
-          householdMarker.setPosition(pos);
-          map.setCenter(pos);
-          map.setZoom(14);
-          updateMapFilter(currentVehicle);
-        }
-      }
-    });
-
-    // Current location button
-    document.getElementById('btn-current-loc').addEventListener('click', function() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(pos) {
-          const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          householdMarker.setPosition(loc);
-          map.setCenter(loc);
-          map.setZoom(15);
-          updateMapFilter(currentVehicle);
-          document.getElementById('coord-input').value = pos.coords.latitude.toFixed(5) + ', ' + pos.coords.longitude.toFixed(5);
-        }, function() {
-          alert('Unable to get current location. Check browser permissions.');
-        });
-      } else {
-        alert('Geolocation not supported by this browser.');
-      }
-    });
-
-    google.maps.event.addListenerOnce(map, 'idle', () => updateMapFilter(currentVehicle));
-  };
+  // Polylines
+  const polylines = collectorMarkers.map((_, i) => L.polyline([], { color: VEHICLE_COLORS[COLLECTORS[i].vehicle], weight: 2, opacity: 0.8 }).addTo(map));
+  const distLabels = collectorMarkers.map(() => L.marker([0,0], { icon: L.divIcon({ className: 'dist-label', html: '', iconSize: [0,0], iconAnchor: [0,0] }), interactive: false }).addTo(map));
 
   function updateMapFilter(vehicleReq) {
-    if (!map || !householdMarker) return;
-    const hPos = householdMarker.getPosition();
-    const hLat = hPos.lat(), hLng = hPos.lng();
+    if (!map) return;
+    const hLatLng = householdMarker.getLatLng();
+    const hLat = hLatLng.lat, hLng = hLatLng.lng;
 
     const entries = collectorMarkers.map((cm, i) => {
-      const cPos = cm.getPosition();
-      const dist = haversine(hLat, hLng, cPos.lat(), cPos.lng());
-      return { marker: cm, index: i, distanceKm: dist, vehicle: COLLECTORS[i].vehicle, barangay: COLLECTORS[i].barangay, name: COLLECTORS[i].name };
+      const cLatLng = cm.getLatLng();
+      const dist = haversine(hLat, hLng, cLatLng.lat, cLatLng.lng);
+      return { marker: cm, index: i, distanceKm: dist, vehicle: COLLECTORS[i].vehicle, barangay: COLLECTORS[i].barangay, name: COLLECTORS[i].name, latLng: cLatLng };
     });
     entries.sort((a, b) => a.distanceKm - b.distanceKm);
 
-    // Update polylines
     entries.forEach(e => {
-      polylines[e.index].setPath([hPos, e.marker.getPosition()]);
+      polylines[e.index].setLatLngs([hLatLng, e.latLng]);
       const compat = e.vehicle === vehicleReq;
-      const midLat = (hLat + e.marker.getPosition().lat()) / 2;
-      const midLng = (hLng + e.marker.getPosition().lng()) / 2;
-      distanceLabels[e.index].setContent(`<div style="font-size:10px;font-weight:600;white-space:nowrap;color:#111;background:${compat ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)'};padding:1px 6px;border-radius:8px;">${e.distanceKm.toFixed(2)} km</div>`);
-      distanceLabels[e.index].setPosition({ lat: midLat, lng: midLng });
-      distanceLabels[e.index].setMap(map);
-      polylines[e.index].setOptions({ strokeOpacity: compat ? 0.9 : 0.12, strokeColor: compat ? VEHICLE_COLORS[e.vehicle] : '#444' });
+      const midLat = (hLat + e.latLng.lat) / 2, midLng = (hLng + e.latLng.lng) / 2;
+      distLabels[e.index].setLatLng([midLat, midLng]);
+      distLabels[e.index].setIcon(L.divIcon({
+        className: 'dist-label',
+        html: '<div style="font-size:10px;font-weight:600;white-space:nowrap;color:#111;background:'+(compat?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.35)')+';padding:1px 6px;border-radius:8px;">'+e.distanceKm.toFixed(2)+' km</div>',
+        iconSize: [0,0], iconAnchor: [25,8]
+      }));
+      polylines[e.index].setStyle({ opacity: compat ? 0.9 : 0.12, color: compat ? VEHICLE_COLORS[e.vehicle] : '#444' });
     });
 
-    // Collector overlay
     const csList = document.getElementById('cs-list');
     csList.innerHTML = entries.map((e, r) => {
       const compat = e.vehicle === vehicleReq;
       const vLabel = e.vehicle === 'pushcart' ? 'Pushcart' : e.vehicle === 'tricycle_sidecar' ? 'Sidecar' : 'Truck';
-      return `<div class="cs-item${compat ? '' : ' incompatible'}"><span class="cs-name">#${r + 1} ${e.name}</span><span class="cs-vtype ${e.vehicle}">${vLabel}</span><span class="cs-dist">${e.distanceKm.toFixed(2)} km</span></div>`;
+      return '<div class="cs-item'+(compat?'':' incompatible')+'"><span class="cs-name">#'+(r+1)+' '+e.name+'</span><span class="cs-vtype '+e.vehicle+'">'+vLabel+'</span><span class="cs-dist">'+e.distanceKm.toFixed(2)+' km</span></div>';
     }).join('');
 
-    // Dashboard closest match
     const closestMatch = entries.find(e => e.vehicle === vehicleReq);
     if (closestMatch) {
       document.getElementById('dash-closest').textContent = closestMatch.distanceKm.toFixed(2) + ' km';
-      document.getElementById('dash-closest-name').textContent = `${closestMatch.name} (${closestMatch.barangay})`;
+      document.getElementById('dash-closest-name').textContent = closestMatch.name + ' (' + closestMatch.barangay + ')';
     } else {
       document.getElementById('dash-closest').textContent = '--';
       document.getElementById('dash-closest-name').textContent = 'No compatible collector';
     }
-
     document.getElementById('maps-badge').textContent = entries.filter(e => e.vehicle === vehicleReq).length + ' Compatible';
   }
 
+  // Events
+  map.on('click', function(e) { householdMarker.setLatLng(e.latlng); updateMapFilter(currentVehicle); });
+  householdMarker.on('drag dragend', function() { updateMapFilter(currentVehicle); });
+  collectorMarkers.forEach(m => { m.on('drag dragend', function() { updateMapFilter(currentVehicle); }); });
+
+  document.getElementById('coord-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      const parts = this.value.split(',').map(s => parseFloat(s.trim()));
+      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        const ll = L.latLng(parts[0], parts[1]);
+        householdMarker.setLatLng(ll);
+        map.setView(ll, 14);
+        updateMapFilter(currentVehicle);
+      }
+    }
+  });
+
+  document.getElementById('btn-current-loc').addEventListener('click', function() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        const ll = L.latLng(pos.coords.latitude, pos.coords.longitude);
+        householdMarker.setLatLng(ll);
+        map.setView(ll, 15);
+        updateMapFilter(currentVehicle);
+        document.getElementById('coord-input').value = pos.coords.latitude.toFixed(5) + ', ' + pos.coords.longitude.toFixed(5);
+      }, function() { alert('Unable to get current location.'); });
+    } else { alert('Geolocation not supported.'); }
+  });
+
+  setTimeout(function() { updateMapFilter(currentVehicle); }, 500);
+
   updateYoloUI();
-  window._kilotap = { updateMapFilter, currentVehicle: () => currentVehicle };
+  window._kilotap = { updateMapFilter, currentVehicle: function() { return currentVehicle; } };
 
 })();
 </script>
-
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAN_eIuvNLgdF0RO1RuveI-0F_I6WOQAVI&callback=initMap" defer></script>
 
 </body>
 </html>

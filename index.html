@@ -154,6 +154,12 @@
 </div>
 
 <script>
+// Global error handler — shows errors visibly on the page
+window.onerror = function(msg, url, line) {
+  document.body.innerHTML = '<div style="background:#1a0000;color:#ff4444;padding:20px;font-family:monospace;white-space:pre-wrap;"><h2>JavaScript Error</h2><p>' + msg + '</p><p>Line: ' + line + '</p></div>';
+  return false;
+};
+
 (function() {
   // =====================================================
   //  PART 1: YOLO SIMULATOR — Junk vs Waste Detection

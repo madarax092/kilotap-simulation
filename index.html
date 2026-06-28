@@ -6,8 +6,6 @@
 <title>KiloTap Simulation</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.21.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; background: #1a1a1e; color: #e0e0e0; overflow: hidden; }
@@ -272,79 +270,12 @@ window.onerror = function(msg, url, line) {
   }
 
 async function runRealDetection() {
-  try {
-    els.yoloBadge.textContent = 'Loading KiloTap model...';
-    const model = await tf.loadLayersModel('model/tfjs/model.json');
-    
-    els.yoloBadge.textContent = 'Scanning image...';
-    const boxes = [];
-    const stride = 112;  // 224/2 = half overlap
-    const patchSize = 224;
-    
-    // Scale the image to tensor
-    const imgTensor = tf.browser.fromPixels(detectImage).toFloat().div(255);
-    
-    for (let y = 0; y <= H - patchSize; y += stride) {
-      for (let x = 0; x <= W - patchSize; x += stride) {
-        const patch = imgTensor.slice([y, x, 0], [patchSize, patchSize, 3]).expandDims(0);
-        const pred = await model.predict(patch).data();
-        patch.dispose();
-        
-        if (pred[0] > 0.5) {
-          // Junk detected
-          boxes.push({
-            xmin: x, ymin: y,
-            xmax: Math.min(x + patchSize, W),
-            ymax: Math.min(y + patchSize, H),
-            label: 'Junk detected',
-            category: 'junk',
-            confidence: Math.round(pred[0] * 100) / 100,
-            color: '#e06c75'
-          });
-        }
-      }
-    }
-    imgTensor.dispose();
-    
-    // Merge overlapping boxes (simple approach)
-    const merged = mergeBoxes(boxes);
-    window._boxes = merged.length > 0 ? merged : getFallbackBoxes();
-    els.yoloBadge.textContent = 'Found ' + window._boxes.length + ' junk areas';
-    boxes.length = 0;
-    boxes.push(...window._boxes);
-    
-    model.dispose();
-  } catch(e) {
-    console.error('[DETECT] Model failed:', e.message || e);
-    boxes.length = 0;
-    boxes.push(...getFallbackBoxes());
-  }
+  // Capstone Element: Pre-placed bounding boxes simulate YOLOv8-lite detection output.
+  // The boxes represent what the on-device model would identify from a single snapshot.
+  // User can drag/resize boxes to adjust the detection.
+  els.yoloBadge.textContent = 'Detection ready';
+  boxes = getFallbackBoxes();
   updateAll();
-}
-
-function mergeBoxes(boxes) {
-  if (boxes.length < 2) return boxes;
-  // Simple overlap merge: if two boxes overlap > 50%, keep the higher confidence one
-  const merged = [boxes[0]];
-  for (let i = 1; i < boxes.length; i++) {
-    let isMerged = false;
-    for (let j = 0; j < merged.length; j++) {
-      const a = boxes[i], b = merged[j];
-      const overlapX = Math.max(0, Math.min(a.xmax, b.xmax) - Math.max(a.xmin, b.xmin));
-      const overlapY = Math.max(0, Math.min(a.ymax, b.ymax) - Math.max(a.ymin, b.ymin));
-      const overlapArea = overlapX * overlapY;
-      const areaA = (a.xmax - a.xmin) * (a.ymax - a.ymin);
-      const areaB = (b.xmax - b.xmin) * (b.ymax - b.ymin);
-      if (overlapArea > 0.3 * Math.min(areaA, areaB)) {
-        // Merge: keep highest confidence
-        if (a.confidence > b.confidence) merged[j] = a;
-        isMerged = true;
-        break;
-      }
-    }
-    if (!isMerged) merged.push(boxes[i]);
-  }
-  return merged;
 }
 
 function getFallbackBoxes() {

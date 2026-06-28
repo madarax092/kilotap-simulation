@@ -1,60 +1,96 @@
 {
-  "width": 640,
-  "height": 420,
+  "width": 700,
+  "height": 933,
   "boxes": [
     {
-      "xmin": 30,
-      "ymin": 160,
-      "xmax": 160,
-      "ymax": 290,
-      "label": "cardboard",
-      "confidence": 0.91,
-      "color": "#e5c07b"
-    },
-    {
-      "xmin": 170,
-      "ymin": 200,
-      "xmax": 270,
-      "ymax": 300,
-      "label": "plastic",
-      "confidence": 0.91,
-      "color": "#c678dd"
-    },
-    {
-      "xmin": 310,
-      "ymin": 120,
-      "xmax": 430,
-      "ymax": 240,
-      "label": "metal",
-      "confidence": 0.91,
-      "color": "#abb2bf"
-    },
-    {
-      "xmin": 450,
-      "ymin": 170,
-      "xmax": 540,
-      "ymax": 260,
-      "label": "glass",
-      "confidence": 0.82,
-      "color": "#56b6c2"
-    },
-    {
-      "xmin": 60,
-      "ymin": 290,
-      "xmax": 210,
-      "ymax": 390,
-      "label": "paper",
-      "confidence": 0.84,
-      "color": "#98c379"
-    },
-    {
-      "xmin": 260,
-      "ymin": 280,
-      "xmax": 390,
-      "ymax": 390,
-      "label": "trash",
-      "confidence": 0.9,
+      "xmin": 519,
+      "ymin": 400,
+      "xmax": 647,
+      "ymax": 557,
+      "label": "refrigerator",
+      "category": "junk",
+      "confidence": 0.85,
       "color": "#e06c75"
+    },
+    {
+      "xmin": 273,
+      "ymin": 382,
+      "xmax": 401,
+      "ymax": 459,
+      "label": "dishwasher",
+      "category": "junk",
+      "confidence": 0.85,
+      "color": "#e06c75"
+    },
+    {
+      "xmin": 145,
+      "ymin": 408,
+      "xmax": 277,
+      "ymax": 517,
+      "label": "metal_frame",
+      "category": "junk",
+      "confidence": 0.89,
+      "color": "#e06c75"
+    },
+    {
+      "xmin": 430,
+      "ymin": 466,
+      "xmax": 481,
+      "ymax": 524,
+      "label": "bicycle_wheel",
+      "category": "junk",
+      "confidence": 0.84,
+      "color": "#e06c75"
+    },
+    {
+      "xmin": 597,
+      "ymin": 342,
+      "xmax": 685,
+      "ymax": 430,
+      "label": "bbq_grill",
+      "category": "junk",
+      "confidence": 0.83,
+      "color": "#e06c75"
+    },
+    {
+      "xmin": 277,
+      "ymin": 473,
+      "xmax": 466,
+      "ymax": 714,
+      "label": "cardboard_box",
+      "category": "waste",
+      "confidence": 0.87,
+      "color": "#61afef"
+    },
+    {
+      "xmin": 641,
+      "ymin": 451,
+      "xmax": 700,
+      "ymax": 561,
+      "label": "plastic_bags",
+      "category": "waste",
+      "confidence": 0.8,
+      "color": "#61afef"
+    },
+    {
+      "xmin": 149,
+      "ymin": 433,
+      "xmax": 262,
+      "ymax": 557,
+      "label": "trash_can",
+      "category": "waste",
+      "confidence": 0.86,
+      "color": "#61afef"
+    },
+    {
+      "xmin": 200,
+      "ymin": 353,
+      "xmax": 236,
+      "ymax": 371,
+      "label": "red_box",
+      "category": "waste",
+      "confidence": 0.88,
+      "color": "#61afef"
     }
   ]
 }

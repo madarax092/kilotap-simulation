@@ -625,8 +625,10 @@ function updateMap() {
   compatibleEntries.sort(function(a, b) { return a.distance - b.distance; });
   incompatibleEntries.sort(function(a, b) { return a.distance - b.distance; });
   
-  // Combined list: compatible first (sorted by distance), then incompatible (greyed)
-  entries = compatibleEntries.concat(incompatibleEntries);
+  // Combined list: compatible first (top 3 notified), then incompatible (greyed)
+  var top3 = compatibleEntries.slice(0, 3);
+  var restCompatible = compatibleEntries.slice(3);
+  entries = top3.concat(restCompatible).concat(incompatibleEntries);
   
   // Update polylines and markers
   entries.forEach(function(e, rank) {
@@ -643,12 +645,18 @@ function updateMap() {
     polylines[e.index].bindTooltip(e.distance.toFixed(1) + ' km', { permanent: true, direction: 'center', className: 'dist-label' });
   });
   
-  // Update collector overlay
+  // Update collector overlay with notification status
   var html = '';
-  entries.forEach(function(e) {
-    html += '<div class="row' + (e.compatible ? '' : ' grey') + '">' +
-      '<span>' + e.collector.name + ' (' + e.collector.vehicle + ')</span>' +
-      '<span class="dist">' + e.distance.toFixed(1) + ' km</span></div>';
+  entries.forEach(function(e, rank) {
+    var status = '';
+    if (e.compatible && rank < top3.length) {
+      status = '<span style=\"color:#98c379;font-size:9px;\">NOTIFIED</span>';
+    } else if (e.compatible) {
+      status = '<span style=\"color:#888;font-size:9px;\">QUEUED</span>';
+    }
+    html += '<div class=\"row' + (e.compatible ? '' : ' grey') + '\">' +
+      '<span>' + (rank + 1) + '. ' + e.collector.name + ' (' + e.collector.vehicle + ') ' + status + '</span>' +
+      '<span class=\"dist\">' + e.distance.toFixed(1) + ' km</span></div>';
   });
   ELS.collectorOverlay.innerHTML = html;
   

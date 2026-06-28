@@ -396,7 +396,7 @@
 
   function updateAll() {
     updateYoloUI();
-    if (typeof updateMapFilter === 'function') updateMapFilter(currentVehicle);
+    if (typeof updateMapFilter === 'function' && typeof map !== 'undefined' && map) updateMapFilter(currentVehicle);
   }
 
   // Initial render

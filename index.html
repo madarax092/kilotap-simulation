@@ -472,7 +472,7 @@
     return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  let map, householdMarker, collectorMarkers, polylines, distanceLabels;
+  let map = null, householdMarker = null, collectorMarkers = null, polylines = null, distanceLabels = null;
 
   window.initMap = function() {
     map = new google.maps.Map(document.getElementById('map-container'), {

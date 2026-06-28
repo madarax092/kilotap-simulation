@@ -396,7 +396,6 @@
 
   function updateAll() {
     updateYoloUI();
-    if (typeof updateMapFilter === 'function' && typeof map !== 'undefined' && map) updateMapFilter(currentVehicle);
   }
 
   // Initial render
@@ -525,7 +524,8 @@
     } else { alert('Geolocation not supported.'); }
   });
 
-  setTimeout(function() { updateMapFilter(currentVehicle); }, 500);
+  // Polling: update map distances every second, and whenever vehicle requirement changes
+  setInterval(function() { updateMapFilter(currentVehicle); }, 1000);
 
   updateYoloUI();
   window._kilotap = { updateMapFilter, currentVehicle: function() { return currentVehicle; } };

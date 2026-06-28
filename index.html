@@ -152,6 +152,21 @@
 </div>
 
 <script>
+// Detect file:// protocol — show server instructions if needed
+(function() {
+  if (location.protocol === 'file:') {
+    document.body.innerHTML = '<div style="max-width:500px;margin:60px auto;padding:24px;background:#1a1a1e;color:#e0e0e0;font:14px monospace;border:1px solid #333;border-radius:4px;">' +
+      '<h2>KiloTap Simulation</h2>' +
+      '<p style="color:#f44;margin:16px 0;">This file must be served from a local web server.</p>' +
+      '<p>Open a terminal in this folder and run:</p>' +
+      '<pre style="background:#111;padding:12px;margin:8px 0;border-radius:4px;">python -m http.server 8080</pre>' +
+      '<p>Then open:</p>' +
+      '<pre style="background:#111;padding:12px;margin:8px 0;border-radius:4px;color:#61afef;">http://localhost:8080</pre>' +
+      '</div>';
+    return;
+  }
+})();
+
 // Global error handler — shows errors visibly on the page
 window.onerror = function(msg, url, line) {
   console.error('[KILOTAP ERROR]', msg, 'line', line);
@@ -230,9 +245,6 @@ window.onerror = function(msg, url, line) {
   let boxes = [];
   let cocoModel = null;
 
-  const detectImage = new Image();
-  detectImage.crossOrigin = 'anonymous';
-
   // --- Background: load photo, then run real detection ---
   let bgImageData = null;
   let detectionReady = false;
@@ -245,12 +257,10 @@ window.onerror = function(msg, url, line) {
       ctx.drawImage(img, 0, 0, W, H);
       bgImageData = ctx.getImageData(0, 0, W, H);
       els.yoloBadge.textContent = 'Photo ready';
-      detectImage.onload = async function() {
-        els.yoloBadge.textContent = 'Starting detection...';
-        await runRealDetection();
-        detectionReady = true;
-      };
-      detectImage.src = img.src;
+      console.log('[DETECT] Starting detection...');
+      els.yoloBadge.textContent = 'Starting detection...';
+      await runRealDetection();
+      detectionReady = true;
     };
     img.onerror = function() {
       console.error('Photo failed to load');

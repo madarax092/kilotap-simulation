@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KiloTap Simulation</title>
+<style>
+  /* ---------- Reset & Base ---------- */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; background: #1a1a1e; color: #e0e0e0; overflow: hidden; }
+
+  /* ---------- Grid Container ---------- */
+  .simulation-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr auto;
+    grid-template-areas: "yolo maps" "dash dash";
+    height: 100vh; gap: 2px; background: #333;
+  }
+
+  /* ---------- Panel Shared ---------- */
+  .panel { background: #1a1a1e; display: flex; flex-direction: column; overflow: hidden; }
+  .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid #333; background: #1e1e22; flex-shrink: 0; }
+  .panel-title { font-size: 13px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #e0e0e0; }
+  .panel-badge { font-size: 10px; font-weight: 500; color: #2563eb; background: rgba(37,99,235,0.12); padding: 3px 10px; border-radius: 3px; letter-spacing: 0.3px; text-transform: uppercase; }
+  .panel-body { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px; position: relative; overflow: hidden; }
+
+  /* ---------- YOLO Panel ---------- */
+  #panel-yolo { grid-area: yolo; }
+  #panel-yolo .panel-body { background: #141418; flex-direction: column; gap: 8px; padding: 12px; }
+  .canvas-wrapper { position: relative; border: 1px solid #333; border-radius: 4px; overflow: hidden; cursor: default; user-select: none; -webkit-user-select: none; flex-shrink: 0; }
+  canvas { display: block; }
+  .yolo-scenarios { display: flex; gap: 8px; flex-shrink: 0; }
+  .scenario-btn { flex: 1; padding: 6px 10px; background: #1e1e22; border: 1px solid #333; border-radius: 4px; color: #999; font-size: 10px; font-family: inherit; cursor: pointer; text-transform: uppercase; letter-spacing: 0.4px; transition: all 0.15s; }
+  .scenario-btn:hover { background: #25252b; color: #e0e0e0; border-color: #555; }
+  .scenario-btn.active { border-color: #2563eb; color: #2563eb; background: rgba(37,99,235,0.08); }
+  .yolo-legend { display: flex; gap: 12px; flex-shrink: 0; font-size: 10px; color: #666; }
+  .yolo-legend span { display: flex; align-items: center; gap: 4px; }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ---------- Maps Panel ---------- */
+  #panel-maps { grid-area: maps; }
+  #panel-maps .panel-body { padding: 0; background: #242428; }
+  #map-container { width: 100%; height: 100%; }
+
+  /* ---------- Dashboard Panel ---------- */
+  #panel-dashboard { grid-area: dash; max-height: 160px; }
+  #panel-dashboard .panel-body { padding: 12px 24px; flex-direction: row; justify-content: space-around; gap: 16px; align-items: stretch; }
+  .dash-card { flex: 1; min-width: 0; background: #1e1e22; border: 1px solid #333; border-radius: 4px; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .dash-card .card-label { font-size: 10px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; color: #666; }
+  .dash-card .card-value { font-size: 20px; font-weight: 600; letter-spacing: 0.3px; font-variant-numeric: tabular-nums; font-family: 'SF Mono','Cascadia Code','Consolas',monospace; }
+  .dash-card .card-sub { font-size: 10px; color: #555; letter-spacing: 0.2px; }
+  .card-omega .card-value { color: #61afef; }
+  .card-tau .card-value { color: #e5c07b; }
+  .card-vehicle .card-value { font-family: 'Inter','Segoe UI',system-ui,sans-serif; font-size: 16px; }
+  .card-vehicle.tricycle .card-value { color: #61afef; }
+  .card-vehicle.hauling .card-value { color: #98c379; }
+  .card-closest .card-value { color: #a6e3a1; }
+
+  /* ---------- Collector status in map overlay ---------- */
+  #collector-status { position: absolute; top: 12px; right: 12px; background: #1e1e22; border: 1px solid #333; border-radius: 4px; padding: 10px 14px; font-size: 11px; max-width: 220px; z-index: 1; }
+  #collector-status .cs-title { font-size: 9px; text-transform: uppercase; letter-spacing: 0.6px; color: #666; margin-bottom: 6px; }
+  .cs-item { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; border-bottom: 1px solid #25252b; gap: 12px; }
+  .cs-item:last-child { border-bottom: none; }
+  .cs-item.incompatible { opacity: 0.3; text-decoration: line-through; }
+  .cs-name { font-weight: 500; color: #ccc; }
+  .cs-vehicle { font-size: 9px; padding: 1px 6px; border-radius: 3px; background: rgba(37,99,235,0.15); color: #2563eb; }
+  .cs-dist { font-variant-numeric: tabular-nums; font-family: 'SF Mono','Consolas',monospace; color: #a6e3a1; font-size: 10px; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 900px) {
+    .simulation-grid { grid-template-columns: 1fr; grid-template-rows: auto auto auto; grid-template-areas: "yolo" "maps" "dash"; }
+    #panel-dashboard { max-height: none; }
+    #panel-dashboard .panel-body { flex-wrap: wrap; }
+    .dash-card { flex: 1 1 120px; }
+  }
+  @media (max-width: 500px) {
+    .panel-header { padding: 10px 14px; }
+    .panel-title { font-size: 11px; }
+    #panel-dashboard .panel-body { padding: 10px; gap: 8px; }
+    .dash-card { padding: 8px 12px; }
+    .dash-card .card-value { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="simulation-grid">
+
+  <!-- ========== YOLO Simulator ========== -->
+  <div id="panel-yolo" class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Object Detection (YOLOv8-lite)</span>
+      <span class="panel-badge">On-Device</span>
+    </div>
+    <div class="panel-body">
+      <div class="canvas-wrapper">
+        <canvas id="yoloCanvas" width="480" height="320"></canvas>
+      </div>
+      <div class="yolo-scenarios" id="scenarioBtns">
+        <button class="scenario-btn active" data-preset="small">Small Load</button>
+        <button class="scenario-btn" data-preset="medium">Medium Load</button>
+        <button class="scenario-btn" data-preset="heavy">Heavy Load</button>
+      </div>
+      <div class="yolo-legend">
+        <span>Drag boxes to move. Drag corners to resize.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Google Maps ========== -->
+  <div id="panel-maps" class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Haversine Proximity Routing</span>
+      <span class="panel-badge" id="maps-badge">Tracking</span>
+    </div>
+    <div class="panel-body" style="position:relative;">
+      <div id="map-container"></div>
+      <div id="collector-status">
+        <div class="cs-title">Collectors (sorted by distance)</div>
+        <div id="cs-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Live Dashboard ========== -->
+  <div id="panel-dashboard" class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Live Calculations</span>
+      <span class="panel-badge" id="dash-badge">Updating</span>
+    </div>
+    <div class="panel-body">
+      <div class="dash-card card-omega"><span class="card-label">Omega (Spatial Ratio)</span><span class="card-value" id="dash-omega">--</span><span class="card-sub">Bbox area / Canvas area</span></div>
+      <div class="dash-card card-tau"><span class="card-label">Tau (Threshold)</span><span class="card-value" id="dash-tau">0.40</span><span class="card-sub">Drag slider to adjust</span></div>
+      <div class="dash-card card-vehicle tricycle" id="dash-vehicle-card"><span class="card-label">Vehicle Decision</span><span class="card-value" id="dash-vehicle">Tricycle Sidecar</span><span class="card-sub" id="dash-vehicle-reason">--</span></div>
+      <div class="dash-card card-closest"><span class="card-label">Closest Collector</span><span class="card-value" id="dash-closest">--</span><span class="card-sub" id="dash-closest-name">--</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================ -->
+<!--  INTEGRATED SIMULATION ENGINE                                 -->
+<!-- ============================================================ -->
+<script>
+(function() {
+  // ============================
+  //  PART 1: YOLO SIMULATOR
+  // ============================
+  const canvas = document.getElementById('yoloCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+  const CANVAS_AREA = W * H;
+
+  const OVERSIZED_LABELS = new Set(['refrigerator','washing_machine','industrial_steel_drum']);
+  const CONFIDENCE_THRESHOLD = 0.85;
+
+  // --- Procedural scrap pile ---
+  function generateScrapPile() {
+    ctx.fillStyle = '#2a2530';
+    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#3a3235';
+    ctx.fillRect(0,H*0.72,W,H*0.28);
+    const scraps = [
+      {x:15,y:140,w:85,h:50,c:'#4a3e38',r:-0.06},{x:120,y:165,w:65,h:38,c:'#3e3e48',r:0.04},
+      {x:55,y:205,w:90,h:30,c:'#55483e',r:0.02},{x:190,y:150,w:60,h:70,c:'#34404a',r:-0.03},
+      {x:280,y:175,w:80,h:40,c:'#423e36',r:0.06},{x:250,y:120,w:50,h:45,c:'#4e4c42',r:-0.02},
+      {x:360,y:160,w:70,h:48,c:'#3c3a34',r:0.03},{x:320,y:220,w:75,h:28,c:'#46423c',r:-0.05},
+      {x:140,y:245,w:85,h:25,c:'#383430',r:0.01},{x:30,y:260,w:65,h:22,c:'#403c36',r:-0.02},
+      {x:410,y:235,w:45,h:35,c:'#3e3a32',r:0.02},{x:385,y:105,w:40,h:52,c:'#4a3e34',r:-0.04},
+      {x:170,y:105,w:45,h:38,c:'#424038',r:0.05},{x:85,y:105,w:55,h:30,c:'#4c4238',r:-0.01},
+      {x:300,y:280,w:90,h:22,c:'#363028',r:0.02},{x:8,y:280,w:105,h:20,c:'#322e26',r:-0.01}
+    ];
+    scraps.forEach(s=>{
+      ctx.save(); const cx=s.x+s.w/2,cy=s.y+s.h/2;
+      ctx.translate(cx,cy); ctx.rotate(s.r);
+      ctx.fillStyle=s.c; ctx.fillRect(-s.w/2,-s.h/2,s.w,s.h);
+      ctx.restore();
+    });
+    for(let i=0;i<30;i++){
+      const dx=Math.random()*W,dy=H*0.7+Math.random()*H*0.25;
+      ctx.fillStyle=`rgba(${120+Math.random()*60},${100+Math.random()*50},${85+Math.random()*40},0.4)`;
+      ctx.fillRect(dx,dy,3+Math.random()*14,2+Math.random()*8);
+    }
+  }
+  generateScrapPile();
+  const bgImageData = ctx.getImageData(0,0,W,H);
+
+  // --- Bounding boxes ---
+  let boxes = [
+    {xmin:155,ymin:130,xmax:215,ymax:200,label:'pet_bottle',confidence:0.91,color:'#61afef'},
+    {xmin:235,ymin:155,xmax:305,ymax:215,label:'cardboard',confidence:0.87,color:'#e5c07b'},
+    {xmin:70,ymin:175,xmax:140,ymax:240,label:'scrap_metal',confidence:0.79,color:'#abb2bf'},
+    {xmin:340,ymin:135,xmax:400,ymax:195,label:'aluminum_can',confidence:0.94,color:'#56b6c2'},
+    {xmin:375,ymin:225,xmax:450,ymax:280,label:'plastic_bag',confidence:0.72,color:'#c678dd'}
+  ];
+
+  // Presets
+  const PRESETS = {
+    small: [
+      {xmin:155,ymin:130,xmax:185,ymax:160,label:'pet_bottle',confidence:0.91,color:'#61afef'},
+      {xmin:235,ymin:155,xmax:260,ymax:180,label:'cardboard',confidence:0.87,color:'#e5c07b'},
+      {xmin:70,ymin:175,xmax:100,ymax:195,label:'scrap_metal',confidence:0.79,color:'#abb2bf'},
+    ],
+    medium: [
+      {xmin:155,ymin:130,xmax:220,ymax:200,label:'pet_bottle',confidence:0.91,color:'#61afef'},
+      {xmin:230,ymin:150,xmax:310,ymax:215,label:'cardboard',confidence:0.87,color:'#e5c07b'},
+      {xmin:65,ymin:170,xmax:148,ymax:245,label:'scrap_metal',confidence:0.79,color:'#abb2bf'},
+      {xmin:340,ymin:135,xmax:405,ymax:198,label:'aluminum_can',confidence:0.94,color:'#56b6c2'},
+      {xmin:370,ymin:225,xmax:455,ymax:285,label:'plastic_bag',confidence:0.72,color:'#c678dd'},
+    ],
+    heavy: [
+      {xmin:60,ymin:100,xmax:220,ymax:210,label:'scrap_metal',confidence:0.82,color:'#abb2bf'},
+      {xmin:230,ymin:100,xmax:400,ymax:220,label:'cardboard',confidence:0.88,color:'#e5c07b'},
+      {xmin:90,ymin:220,xmax:260,ymax:308,label:'refrigerator',confidence:0.91,color:'#e76b6b'},
+      {xmin:320,ymin:90,xmax:440,ymax:160,label:'aluminum_can',confidence:0.93,color:'#56b6c2'},
+      {xmin:280,ymin:240,xmax:450,ymax:310,label:'plastic_bag',confidence:0.74,color:'#c678dd'},
+    ]
+  };
+
+  // Scenario buttons
+  document.getElementById('scenarioBtns').addEventListener('click', function(e){
+    const btn = e.target.closest('.scenario-btn');
+    if(!btn) return;
+    document.querySelectorAll('.scenario-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    boxes = JSON.parse(JSON.stringify(PRESETS[btn.dataset.preset]));
+    selectedIndex = null;
+    updateAll();
+  });
+
+  // --- Interaction state ---
+  const HANDLE_SIZE=8, MIN_BOX_SIZE=20;
+  let draggingBox=null, resizingBox=null, resizeCorner=null, dragStartX=0, dragStartY=0, dragOrigBox=null, selectedIndex=null, hoveredHandle=null;
+
+  // --- Tau ---
+  let tau=0.40;
+  document.getElementById('tauSlider').addEventListener('input',()=>{tau=parseFloat(tauSlider.value);document.getElementById('tauValue').textContent=tau.toFixed(2);updateAll();});
+
+  // --- Math ---
+  function computeOmega(){
+    let total=0;
+    boxes.forEach(b=>{const w=b.xmax-b.xmin,h=b.ymax-b.ymin; if(w>0&&h>0) total+=w*h;});
+    return {omega:total/CANVAS_AREA, totalArea:total};
+  }
+
+  function computeDecision(omega){
+    let hasOversized=false, oversizedLabel='';
+    boxes.forEach(b=>{if(OVERSIZED_LABELS.has(b.label)&&b.confidence>=CONFIDENCE_THRESHOLD){hasOversized=true;oversizedLabel=b.label;}});
+    if(omega>=tau) return {vehicle:'hauling_truck',reason:`Omega (${omega.toFixed(3)}) >= tau (${tau.toFixed(2)})`};
+    if(hasOversized) return {vehicle:'hauling_truck',reason:`Oversized "${oversizedLabel}" detected (conf >= ${CONFIDENCE_THRESHOLD})`};
+    return {vehicle:'tricycle_sidecar',reason:`Omega (${omega.toFixed(3)}) < tau (${tau.toFixed(2)}), no oversized items`};
+  }
+
+  // --- Drawing ---
+  function redraw(){
+    ctx.putImageData(bgImageData,0,0);
+    boxes.forEach((b,idx)=>{
+      const w=b.xmax-b.xmin,h=b.ymax-b.ymin,isSel=idx===selectedIndex,isOversized=OVERSIZED_LABELS.has(b.label);
+      ctx.fillStyle=b.color+'22'; ctx.fillRect(b.xmin,b.ymin,w,h);
+      ctx.strokeStyle=isSel?'#528bff':b.color; ctx.lineWidth=isSel?2.5:1.8; ctx.strokeRect(b.xmin,b.ymin,w,h);
+      // Handles
+      [{x:b.xmin,y:b.ymin},{x:b.xmax,y:b.ymin},{x:b.xmin,y:b.ymax},{x:b.xmax,y:b.ymax}].forEach(c=>{
+        const hov=hoveredHandle&&hoveredHandle.boxIdx===idx&&hoveredHandle.corner===(c.x===b.xmin?(c.y===b.ymin?'tl':'bl'):(c.y===b.ymin?'tr':'br'));
+        ctx.fillStyle=hov?'#fff':b.color; ctx.fillRect(c.x-HANDLE_SIZE/2,c.y-HANDLE_SIZE/2,HANDLE_SIZE,HANDLE_SIZE);
+      });
+      // Label
+      const txt=`${b.label}  ${(b.confidence*100).toFixed(0)}%`,metrics=ctx.measureText(txt);
+      ctx.font='600 10px "Segoe UI","Inter",system-ui,sans-serif';
+      const tw=metrics.width+8,th=16,ly=b.ymin-th-2>0?b.ymin-th-2:b.ymin+2;
+      ctx.fillStyle=b.color; ctx.beginPath(); roundRect(ctx,b.xmin,ly,tw,th,3); ctx.fill();
+      ctx.fillStyle='#1a1a1e'; ctx.fillText(txt,b.xmin+4,ly+12);
+      if(isOversized){ctx.fillStyle='#e76b6b'; ctx.beginPath(); roundRect(ctx,b.xmin+tw+4,ly,60,th,3); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillText('OVERSIZED',b.xmin+tw+8,ly+12);}
+    });
+  }
+  function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();}
+
+  // --- Mouse events ---
+  function getHandleAt(mx,my){
+    for(let i=0;i<boxes.length;i++){
+      const b=boxes[i];
+      const corners=[{x:b.xmin,y:b.ymin,c:'tl'},{x:b.xmax,y:b.ymin,c:'tr'},{x:b.xmin,y:b.ymax,c:'bl'},{x:b.xmax,y:b.ymax,c:'br'}];
+      for(const c of corners) if(Math.abs(mx-c.x)<HANDLE_SIZE&&Math.abs(my-c.y)<HANDLE_SIZE) return {boxIdx:i,corner:c.c};
+    }
+    return null;
+  }
+  function getBoxAt(mx,my){
+    for(let i=boxes.length-1;i>=0;i--){const b=boxes[i]; if(mx>=b.xmin&&mx<=b.xmax&&my>=b.ymin&&my<=b.ymax) return i;}
+    return null;
+  }
+
+  canvas.addEventListener('mousedown',function(e){
+    const rect=canvas.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+    const h=getHandleAt(mx,my);
+    if(h){resizingBox=h.boxIdx;resizeCorner=h.corner;dragStartX=mx;dragStartY=my;dragOrigBox=JSON.parse(JSON.stringify(boxes[h.boxIdx]));selectedIndex=h.boxIdx;redraw();return;}
+    const bi=getBoxAt(mx,my);
+    if(bi!==null){draggingBox=bi;dragStartX=mx;dragStartY=my;dragOrigBox=JSON.parse(JSON.stringify(boxes[bi]));selectedIndex=bi;redraw();return;}
+    selectedIndex=null;redraw();
+  });
+  canvas.addEventListener('mousemove',function(e){
+    const rect=canvas.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+    if(resizingBox!==null){
+      const b=boxes[resizingBox],orig=dragOrigBox;
+      if(resizeCorner==='tl'||resizeCorner==='bl') b.xmin=Math.min(mx,orig.xmax-MIN_BOX_SIZE);
+      if(resizeCorner==='tr'||resizeCorner==='br') b.xmax=Math.max(mx,orig.xmin+MIN_BOX_SIZE);
+      if(resizeCorner==='tl'||resizeCorner==='tr') b.ymin=Math.min(my,orig.ymax-MIN_BOX_SIZE);
+      if(resizeCorner==='bl'||resizeCorner==='br') b.ymax=Math.max(my,orig.ymin+MIN_BOX_SIZE);
+      b.xmin=Math.max(0,b.xmin);b.ymin=Math.max(0,b.ymin);b.xmax=Math.min(W,b.xmax);b.ymax=Math.min(H,b.ymax);
+      updateAll(); return;
+    }
+    if(draggingBox!==null){
+      const b=boxes[draggingBox],orig=dragOrigBox,dx=mx-dragStartX,dy=my-dragStartY,ow=orig.xmax-orig.xmin,oh=orig.ymax-orig.ymin;
+      b.xmin=Math.max(0,Math.min(W-ow,orig.xmin+dx));b.ymin=Math.max(0,Math.min(H-oh,orig.ymin+dy));
+      b.xmax=b.xmin+ow;b.ymax=b.ymin+oh;
+      updateAll(); return;
+    }
+    const h=getHandleAt(mx,my); hoveredHandle=h; redraw();
+  });
+  canvas.addEventListener('mouseup',function(){draggingBox=null;resizingBox=null;resizeCorner=null;dragOrigBox=null;});
+  canvas.addEventListener('mouseleave',function(){hoveredHandle=null;redraw();});
+
+  // --- Global output ---
+  let currentVehicle = 'tricycle_sidecar';
+
+  function updateYoloUI(){
+    const {omega,totalArea}=computeOmega(),decision=computeDecision(omega);
+    currentVehicle = decision.vehicle;
+    // Dashboard
+    document.getElementById('dash-omega').textContent=omega.toFixed(3);
+    document.getElementById('dash-tau').textContent=tau.toFixed(2);
+    const ve=document.getElementById('dash-vehicle'),vc=document.getElementById('dash-vehicle-card');
+    ve.textContent=decision.vehicle==='hauling_truck'?'Hauling Truck':'Tricycle Sidecar';
+    vc.className='dash-card card-vehicle '+(decision.vehicle==='hauling_truck'?'hauling':'tricycle');
+    document.getElementById('dash-vehicle-reason').textContent=decision.reason;
+    // Also update #dash-badge
+    document.getElementById('dash-badge').textContent=decision.vehicle==='hauling_truck'?'Truck Required':'Sidecar OK';
+    redraw();
+  }
+
+  function updateAll(){
+    updateYoloUI();
+    if(typeof updateMapFilter === 'function') updateMapFilter(currentVehicle);
+  }
+
+  // ============================
+  //  PART 2: MAPS + HAVERSINE
+  // ============================
+  const DAVAO_CENTER={lat:7.07,lng:125.61},EARTH_RADIUS_KM=6371;
+  const HOUSEHOLD={id:'household',title:'Household (Davao City)',lat:7.070,lng:125.613,icon:'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'};
+  const COLLECTORS=[
+    {id:'c1',title:'Mang Juan - Poblacion',lat:7.068,lng:125.608,vehicle:'tricycle_sidecar',barangay:'Poblacion'},
+    {id:'c2',title:'Mang Pedro - Agdao',lat:7.088,lng:125.622,vehicle:'tricycle_sidecar',barangay:'Agdao'},
+    {id:'c3',title:'Mang Luis - Buhangin',lat:7.101,lng:125.642,vehicle:'hauling_truck',barangay:'Buhangin'}
+  ];
+
+  function haversine(lat1,lng1,lat2,lng2){
+    const toRad=d=>d*Math.PI/180,ph1=toRad(lat1),ph2=toRad(lat2),dph=toRad(lat2-lat1),dla=toRad(lng2-lng1);
+    const a=Math.sin(dph/2)**2+Math.cos(ph1)*Math.cos(ph2)*Math.sin(dla/2)**2;
+    return EARTH_RADIUS_KM*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  }
+
+  let map,householdMarker,collectorMarkers,polylines,distanceLabels;
+
+  window.initMap=function(){
+    map=new google.maps.Map(document.getElementById('map-container'),{center:DAVAO_CENTER,zoom:13,mapTypeControl:true,fullscreenControl:false,streetViewControl:false});
+    householdMarker=new google.maps.Marker({position:{lat:HOUSEHOLD.lat,lng:HOUSEHOLD.lng},map,title:HOUSEHOLD.title,draggable:true,animation:google.maps.Animation.DROP});
+    householdMarker.setIcon({path:google.maps.SymbolPath.CIRCLE,fillColor:'#2563eb',fillOpacity:1,strokeColor:'#fff',strokeWeight:2,scale:8});
+
+    collectorMarkers=COLLECTORS.map(c=>{
+      const color=c.vehicle==='hauling_truck'?'#f9e2af':'#89b4fa';
+      const marker=new google.maps.Marker({position:{lat:c.lat,lng:c.lng},map,title:c.title,draggable:true,animation:google.maps.Animation.DROP});
+      marker.setIcon({path:google.maps.SymbolPath.CIRCLE,fillColor:color,fillOpacity:1,strokeColor:'#333',strokeWeight:2,scale:7});
+      marker._collectorId=c.id;marker._barangay=c.barangay;marker._vehicle=c.vehicle;marker._name=c.title.split(' - ')[0];
+      return marker;
+    });
+
+    polylines=collectorMarkers.map((_,i)=>new google.maps.Polyline({map,geodesic:true,strokeColor:COLLECTORS[i].vehicle==='hauling_truck'?'#f9e2af':'#89b4fa',strokeOpacity:0.8,strokeWeight:2,path:[]}));
+    distanceLabels=collectorMarkers.map(()=>new google.maps.InfoWindow({content:''}));
+    const allM=[householdMarker,...collectorMarkers];
+    allM.forEach(m=>{m.addListener('drag',()=>updateMapFilter(currentVehicle));m.addListener('dragend',()=>updateMapFilter(currentVehicle));});
+    google.maps.event.addListenerOnce(map,'idle',()=>updateMapFilter(currentVehicle));
+  };
+
+  function updateMapFilter(vehicleReq){
+    if(!map||!householdMarker) return;
+    const hPos=householdMarker.getPosition(),hLat=hPos.lat(),hLng=hPos.lng();
+    const entries=collectorMarkers.map((cm,i)=>{
+      const cPos=cm.getPosition(),dist=haversine(hLat,hLng,cPos.lat(),cPos.lng());
+      return {marker:cm,index:i,distanceKm:dist,vehicle:COLLECTORS[i].vehicle,barangay:COLLECTORS[i].barangay,name:COLLECTORS[i].title.split(' - ')[0]};
+    });
+    entries.sort((a,b)=>a.distanceKm-b.distanceKm);
+
+    // Update polylines & labels
+    entries.forEach(e=>{
+      polylines[e.index].setPath([hPos,e.marker.getPosition()]);
+      const midLat=(hLat+e.marker.getPosition().lat())/2,midLng=(hLng+e.marker.getPosition().lng())/2;
+      const compat=e.vehicle===vehicleReq;
+      distanceLabels[e.index].setContent('<div style="font-size:11px;font-weight:600;white-space:nowrap;color:#111;background:'+(compat?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.4)')+';padding:2px 6px;border-radius:10px;">'+e.distanceKm.toFixed(2)+' km</div>');
+      distanceLabels[e.index].setPosition({lat:midLat,lng:midLng}); distanceLabels[e.index].setMap(map);
+      polylines[e.index].setOptions({strokeOpacity:compat?0.9:0.15,strokeColor:compat?(e.vehicle==='hauling_truck'?'#f9e2af':'#89b4fa'):'#444'});
+    });
+
+    // Update collector status overlay
+    const csList=document.getElementById('cs-list');
+    csList.innerHTML=entries.map((e,r)=>{
+      const compat=e.vehicle===vehicleReq;
+      const vlabel=e.vehicle==='hauling_truck'?'Truck':'Sidecar';
+      return '<div class="cs-item'+(compat?'':' incompatible')+'"><span class="cs-name">#'+(r+1)+' '+e.name+'</span><span class="cs-vehicle">'+vlabel+'</span><span class="cs-dist">'+e.distanceKm.toFixed(2)+' km</span></div>';
+    }).join('');
+
+    // Dashboard: closest compatible collector
+    const closestMatch=entries.find(e=>e.vehicle===vehicleReq);
+    if(closestMatch){
+      document.getElementById('dash-closest').textContent=closestMatch.distanceKm.toFixed(2)+' km';
+      document.getElementById('dash-closest-name').textContent=closestMatch.name+' ('+closestMatch.barangay+')';
+    } else {
+      document.getElementById('dash-closest').textContent='--';
+      document.getElementById('dash-closest-name').textContent='No compatible collector';
+    }
+
+    // Maps badge
+    document.getElementById('maps-badge').textContent=vehicleReq==='hauling_truck'?'Truck Mode':'Sidecar Mode';
+  }
+
+  // ============================
+  //  INIT
+  // ============================
+  updateAll();
+  // Populate tau slider on dashboard side
+  const tauSlider=document.getElementById('tauSlider');
+  tauSlider.addEventListener('input',()=>{tau=parseFloat(tauSlider.value);document.getElementById('tauValue').textContent=tau.toFixed(2);updateAll();});
+
+  // Expose
+  window._kilotap={updateMapFilter,currentVehicle:()=>currentVehicle};
+
+})();
+</script>
+
+<!-- Google Maps API -->
+<script src="https://maps.googleapis.com/maps/api/js?key=*** async defer></script>
+
+</body>
+</html>

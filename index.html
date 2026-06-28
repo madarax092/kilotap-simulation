@@ -191,8 +191,10 @@
       ctx.drawImage(img, 0, 0, W, H);
       bgImageData = ctx.getImageData(0, 0, W, H);
       detectImage.src = img.src;
-      await runRealDetection();
-      detectionReady = true;
+      detectImage.onload = async function() {
+        await runRealDetection();
+        detectionReady = true;
+      };
     };
     ctx.fillStyle = '#1a1a1e'; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#666';

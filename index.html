@@ -609,14 +609,24 @@ function updateMap() {
   // Update coordinate input
   document.getElementById('coord-input').value = hLat.toFixed(3) + ', ' + hLng.toFixed(3);
   
-  // Calculate distances
+  // Calculate distances and filter by vehicle requirement (per capstone 2.3.2)
   var entries = COLLECTORS.map(function(c, i) {
     var dist = haversine(hLat, hLng, c.lat, c.lng);
-    var compatible = currentVehicle === 'Hauling Truck' ? c.vehicle === 'Hauling Truck' : true;
+    // Strict vehicle match per capstone: only compatible collectors
+    var compatible = c.vehicle === currentVehicle;
     return { index: i, collector: c, distance: dist, compatible: compatible };
   });
   
-  entries.sort(function(a, b) { return a.distance - b.distance; });
+  // Separate compatible and incompatible
+  var compatibleEntries = entries.filter(function(e) { return e.compatible; });
+  var incompatibleEntries = entries.filter(function(e) { return !e.compatible; });
+  
+  // Sort compatible by distance ascending (min d per capstone)
+  compatibleEntries.sort(function(a, b) { return a.distance - b.distance; });
+  incompatibleEntries.sort(function(a, b) { return a.distance - b.distance; });
+  
+  // Combined list: compatible first (sorted by distance), then incompatible (greyed)
+  entries = compatibleEntries.concat(incompatibleEntries);
   
   // Update polylines and markers
   entries.forEach(function(e, rank) {

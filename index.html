@@ -156,7 +156,12 @@
 <script>
 // Global error handler — shows errors visibly on the page
 window.onerror = function(msg, url, line) {
-  document.body.innerHTML = '<div style="background:#1a0000;color:#ff4444;padding:20px;font-family:monospace;white-space:pre-wrap;"><h2>JavaScript Error</h2><p>' + msg + '</p><p>Line: ' + line + '</p></div>';
+  console.error('[KILOTAP ERROR]', msg, 'line', line);
+  var b = document.createElement('div');
+  b.id = 'error-banner';
+  b.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#a00;color:#fff;padding:6px 14px;font:12px monospace;z-index:9999;text-align:center;';
+  b.innerHTML = '<b>Error:</b> ' + msg + ' <b>Line:</b> ' + line + ' (see F12 console)';
+  document.body.prepend(b);
   return false;
 };
 
@@ -235,8 +240,10 @@ window.onerror = function(msg, url, line) {
   let detectionReady = false;
 
   function loadBackground() {
+    console.log('[PHOTO] loadBackground running');
     const img = new Image();
     img.onload = async function() {
+      console.log('[PHOTO] Image loaded — drawing to canvas');
       ctx.drawImage(img, 0, 0, W, H);
       bgImageData = ctx.getImageData(0, 0, W, H);
       els.yoloBadge.textContent = 'Photo ready';
@@ -265,6 +272,7 @@ window.onerror = function(msg, url, line) {
   }
 
 async function runRealDetection() {
+  console.log('[DETECT] runRealDetection starting');
   try {
     els.yoloBadge.textContent = 'Loading COCO-SSD...';
     cocoModel = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
@@ -284,6 +292,7 @@ async function runRealDetection() {
       }));
     }
   } catch(e) {
+    console.error('[DETECT] Detection pipeline failed:', e.message || e);
     console.warn('Detection failed:', e);
     boxes = getFallbackBoxes();
   }
@@ -515,7 +524,7 @@ async function runRealDetection() {
   const distLabels = collectorMarkers.map(() => L.marker([0,0], { icon: L.divIcon({ className: 'dist-label', html: '', iconSize: [0,0], iconAnchor: [0,0] }), interactive: false }).addTo(map));
 
   function updateMapFilter(vehicleReq) {
-    if (!map) return;
+    if (!map) { console.log('[MAP] updateMapFilter skipped — map not ready'); return; }
     const hLatLng = householdMarker.getLatLng();
     const hLat = hLatLng.lat, hLng = hLatLng.lng;
 

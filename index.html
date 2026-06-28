@@ -158,11 +158,27 @@
   // =====================================================
   //  PART 1: YOLO SIMULATOR — Junk vs Waste Detection
   // =====================================================
-  const canvas = document.getElementById('yoloCanvas');
+  const canvas = els.yoloCanvas;
   const ctx = canvas.getContext('2d');
   const W = canvas.width;
   const H = canvas.height;
   const CANVAS_AREA = 700 * 933;  // = 653100
+
+  // =====================================================
+  // DOM ELEMENT CACHE — query once, use everywhere
+  // =====================================================
+  const E = (id) => document.getElementById(id);
+  const els = {
+    yoloBadge: E('yolo-badge'), yoloCanvas: E('yoloCanvas'),
+    mapsBadge: E('maps-badge'), coordInput: E('coord-input'),
+    btnLoc: E('btn-current-loc'), csList: E('cs-list'),
+    dashBadge: E('dash-badge'), dashOmega: E('dash-omega'),
+    dashTau: E('dash-tau'), dashJunk: E('dash-junk'),
+    dashWaste: E('dash-waste'), dashVehicle: E('dash-vehicle'),
+    dashVehicleCard: E('dash-vehicle-card'), dashVehicleReason: E('dash-vehicle-reason'),
+    dashClosest: E('dash-closest'), dashClosestName: E('dash-closest-name'),
+    tauSlider: E('tauSlider'), tauValue: E('tauValue'),
+  };
 
   // Philippine Junk Shop Classification — based on actual Davao/PH junkshop buy lists
   // JUNK (high value, heavy — requires hauling truck): metals, appliances, electronics, vehicle parts
@@ -235,13 +251,13 @@
 
 async function runRealDetection() {
   try {
-    document.getElementById('yolo-badge').textContent = 'Loading COCO-SSD...';
+    els.yoloBadge.textContent = 'Loading COCO-SSD...';
     cocoModel = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
       
-    document.getElementById('yolo-badge').textContent = 'Loading KiloTap classifier...';
+    els.yoloBadge.textContent = 'Loading KiloTap classifier...';
     const kilotapModel = await tf.loadLayersModel('model/tfjs/model.json');
       
-    document.getElementById('yolo-badge').textContent = 'Detecting objects...';
+    els.yoloBadge.textContent = 'Detecting objects...';
     const predictions = await cocoModel.detect(detectImage);
       
     // For each detected object, use KiloTap classifier to verify junk/waste
@@ -304,10 +320,7 @@ async function runRealDetection() {
   function round(v, d) { const p = Math.pow(10, d); return Math.round(v * p) / p; }
 
   // --- Math ---
-  function getCategory(label) {
-    if (PH_JUNK.has(label)) return 'junk';
-    return 'waste';
-  }
+  
 
   function computeOmega() {
     let total = 0;
@@ -316,7 +329,7 @@ async function runRealDetection() {
   }
 
   function computeDecision(omega) {
-    const junkCount = boxes.filter(b => getCategory(b.label) === 'junk' && b.confidence >= CONFIDENCE_THRESHOLD).length;
+    const junkCount = boxes.filter(b => classifyPhilippine(b.label) === 'junk' && b.confidence >= CONFIDENCE_THRESHOLD).length;
     const hasJunk = junkCount > 0;
 
     if (omega >= tau) {
@@ -337,7 +350,7 @@ async function runRealDetection() {
     ctx.putImageData(bgImageData, 0, 0);
     boxes.forEach((b, idx) => {
       const w = b.xmax - b.xmin, h = b.ymax - b.ymin, isSel = idx === selectedIndex;
-      const cat = getCategory(b.label);
+      const cat = classifyPhilippine(b.label);
       ctx.fillStyle = b.color + '18';
       ctx.fillRect(b.xmin, b.ymin, w, h);
       ctx.strokeStyle = isSel ? '#528bff' : b.color;
@@ -431,29 +444,29 @@ async function runRealDetection() {
     const decision = computeDecision(omega);
     currentVehicle = decision.vehicle;
 
-    const junkCount = boxes.filter(b => getCategory(b.label) === 'junk').length;
-    const wasteCount = boxes.filter(b => getCategory(b.label) === 'waste').length;
+    const junkCount = boxes.filter(b => classifyPhilippine(b.label) === 'junk').length;
+    const wasteCount = boxes.filter(b => classifyPhilippine(b.label) === 'waste').length;
 
-    document.getElementById('dash-omega').textContent = omega.toFixed(3);
-    document.getElementById('dash-tau').textContent = tau.toFixed(2);
-    document.getElementById('dash-junk').textContent = junkCount;
-    document.getElementById('dash-waste').textContent = wasteCount;
-    document.getElementById('dash-vehicle').textContent = decision.vehicle === 'hauling_truck' ? 'Hauling Truck' : 'Tricycle Sidecar';
-    const vc = document.getElementById('dash-vehicle-card');
+    els.dashOmega.textContent = omega.toFixed(3);
+    els.dashTau.textContent = tau.toFixed(2);
+    els.dashJunk.textContent = junkCount;
+    els.dashWaste.textContent = wasteCount;
+    els.dashVehicle.textContent = decision.vehicle === 'hauling_truck' ? 'Hauling Truck' : 'Tricycle Sidecar';
+    const vc = els.dashVehicleCard;
     vc.className = 'dash-card card-vehicle ' + (decision.vehicle === 'hauling_truck' ? 'hauling' : 'tricycle');
-    document.getElementById('dash-vehicle-reason').textContent = decision.reason;
-    document.getElementById('dash-badge').textContent = decision.vehicle === 'hauling_truck' ? 'Truck Required' : 'Sidecar OK';
-    document.getElementById('yolo-badge').textContent = 'Junk: ' + junkCount + ' | Waste: ' + wasteCount;
+    els.dashVehicleReason.textContent = decision.reason;
+    els.dashBadge.textContent = decision.vehicle === 'hauling_truck' ? 'Truck Required' : 'Sidecar OK';
+    els.yoloBadge.textContent = 'Junk: ' + junkCount + ' | Waste: ' + wasteCount;
 
     // Update tau display
-    document.getElementById('tauValue').textContent = tau.toFixed(2);
-    document.getElementById('tauSlider').value = tau;
+    els.tauValue.textContent = tau.toFixed(2);
+    els.tauSlider.value = tau;
 
     redraw();
   }
 
   // Tau slider
-  document.getElementById('tauSlider').addEventListener('input', function() {
+  els.tauSlider.addEventListener('input', function() {
     tau = parseFloat(this.value);
     updateAll();
   });
@@ -541,7 +554,7 @@ async function runRealDetection() {
       polylines[e.index].setStyle({ opacity: compat ? 0.9 : 0.12, color: compat ? VEHICLE_COLORS[e.vehicle] : '#444' });
     });
 
-    const csList = document.getElementById('cs-list');
+    const csList = els.csList;
     csList.innerHTML = entries.map((e, r) => {
       const compat = e.vehicle === vehicleReq;
       const vLabel = e.vehicle === 'pushcart' ? 'Pushcart' : e.vehicle === 'tricycle_sidecar' ? 'Sidecar' : 'Truck';
@@ -550,13 +563,13 @@ async function runRealDetection() {
 
     const closestMatch = entries.find(e => e.vehicle === vehicleReq);
     if (closestMatch) {
-      document.getElementById('dash-closest').textContent = closestMatch.distanceKm.toFixed(2) + ' km';
-      document.getElementById('dash-closest-name').textContent = closestMatch.name + ' (' + closestMatch.barangay + ')';
+      els.dashClosest.textContent = closestMatch.distanceKm.toFixed(2) + ' km';
+      els.dashClosestName.textContent = closestMatch.name + ' (' + closestMatch.barangay + ')';
     } else {
-      document.getElementById('dash-closest').textContent = '--';
-      document.getElementById('dash-closest-name').textContent = 'No compatible collector';
+      els.dashClosest.textContent = '--';
+      els.dashClosestName.textContent = 'No compatible collector';
     }
-    document.getElementById('maps-badge').textContent = entries.filter(e => e.vehicle === vehicleReq).length + ' Compatible';
+    els.mapsBadge.textContent = entries.filter(e => e.vehicle === vehicleReq).length + ' Compatible';
   }
 
   // Events
@@ -564,7 +577,7 @@ async function runRealDetection() {
   householdMarker.on('drag dragend', function() { updateMapFilter(currentVehicle); });
   collectorMarkers.forEach(m => { m.on('drag dragend', function() { updateMapFilter(currentVehicle); }); });
 
-  document.getElementById('coord-input').addEventListener('keydown', function(e) {
+  els.coordInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
       const parts = this.value.split(',').map(s => parseFloat(s.trim()));
       if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
@@ -576,14 +589,14 @@ async function runRealDetection() {
     }
   });
 
-  document.getElementById('btn-current-loc').addEventListener('click', function() {
+  els.btnLoc.addEventListener('click', function() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(function(pos) {
         const ll = L.latLng(pos.coords.latitude, pos.coords.longitude);
         householdMarker.setLatLng(ll);
         map.setView(ll, 15);
         updateMapFilter(currentVehicle);
-        document.getElementById('coord-input').value = pos.coords.latitude.toFixed(5) + ', ' + pos.coords.longitude.toFixed(5);
+        els.coordInput.value = pos.coords.latitude.toFixed(5) + ', ' + pos.coords.longitude.toFixed(5);
       }, function() { alert('Unable to get current location.'); });
     } else { alert('Geolocation not supported.'); }
   });

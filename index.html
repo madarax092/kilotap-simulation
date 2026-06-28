@@ -6,6 +6,7 @@
 <title>KiloTap Simulation</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.21.0/dist/tf.min.js"></script>
 <style>
 /* ===== RESET & BASE ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -262,16 +263,86 @@ loadPhoto();
 // ======================================================================
 // DETECTION BOXES (simulate YOLOv8-lite output)
 // ======================================================================
-function loadDefaultBoxes() {
-  boxes = [
-    { xmin: 515, ymin: 395, xmax: 645, ymax: 555, label: 'refrigerator', confidence: 0.88 },
-    { xmin: 595, ymin: 338, xmax: 685, ymax: 428, label: 'appliance', confidence: 0.82 },
-    { xmin: 140, ymin: 405, xmax: 278, ymax: 520, label: 'scrap_metal', confidence: 0.76 },
-    { xmin: 428, ymin: 462, xmax: 482, ymax: 526, label: 'bicycle', confidence: 0.84 },
-    { xmin: 272, ymin: 470, xmax: 468, ymax: 715, label: 'cardboard_box', confidence: 0.85 },
-    { xmin: 28, ymin: 158, xmax: 162, ymax: 292, label: 'cardboard_box', confidence: 0.87 },
-    { xmin: 638, ymin: 448, xmax: 700, ymax: 562, label: 'plastic_bag', confidence: 0.80 },
-  ];
+var CLASS_MAP = {
+  0: { label: 'aerosol cans', category: 'junk' },
+  1: { label: 'aluminum food cans', category: 'junk' },
+  2: { label: 'aluminum soda cans', category: 'junk' },
+  3: { label: 'cardboard boxes', category: 'waste' },
+  4: { label: 'cardboard packaging', category: 'waste' },
+  5: { label: 'clothing', category: 'skip' },
+  6: { label: 'coffee grounds', category: 'waste' },
+  7: { label: 'disposable plastic cutlery', category: 'waste' },
+  8: { label: 'eggshells', category: 'waste' },
+  9: { label: 'food waste', category: 'waste' },
+  10: { label: 'glass beverage bottles', category: 'waste' },
+  11: { label: 'glass cosmetic containers', category: 'waste' },
+  12: { label: 'glass food jars', category: 'waste' },
+  13: { label: 'magazines', category: 'waste' },
+  14: { label: 'newspaper', category: 'waste' },
+  15: { label: 'office paper', category: 'waste' },
+  16: { label: 'paper cups', category: 'waste' },
+  17: { label: 'plastic cup lids', category: 'waste' },
+  18: { label: 'plastic detergent bottles', category: 'waste' },
+  19: { label: 'plastic food containers', category: 'waste' },
+  20: { label: 'plastic shopping bags', category: 'waste' },
+  21: { label: 'plastic soda bottles', category: 'waste' },
+  22: { label: 'plastic straws', category: 'waste' },
+  23: { label: 'plastic trash bags', category: 'waste' },
+  24: { label: 'plastic water bottles', category: 'waste' },
+  25: { label: 'shoes', category: 'skip' },
+  26: { label: 'steel food cans', category: 'junk' },
+  27: { label: 'styrofoam cups', category: 'waste' },
+  28: { label: 'styrofoam food containers', category: 'waste' },
+  29: { label: 'tea bags', category: 'waste' },
+};
+
+async function loadDefaultBoxes() {
+  try {
+    ELS.yoloBadge.textContent = 'Loading AI model...';
+    var model = await tf.loadLayersModel('model_30class/tfjs/model.json');
+    
+    ELS.yoloBadge.textContent = 'Scanning image...';
+    boxes = [];
+    var stride = 112;
+    var patchSize = 224;
+    
+    var imgTensor = tf.browser.fromPixels(detectImage).toFloat().div(255);
+    
+    for (var y = 0; y <= CANVAS_H - patchSize; y += stride) {
+      for (var x = 0; x <= CANVAS_W - patchSize; x += stride) {
+        var patch = imgTensor.slice([y, x, 0], [patchSize, patchSize, 3]).expandDims(0);
+        var pred = model.predict(patch);
+        var values = pred.dataSync();
+        pred.dispose();
+        patch.dispose();
+        
+        var maxIdx = 0, maxVal = values[0];
+        for (var i = 1; i < values.length; i++) {
+          if (values[i] > maxVal) { maxVal = values[i]; maxIdx = i; }
+        }
+        
+        var cls = CLASS_MAP[maxIdx];
+        if (cls.category !== 'skip' && maxVal > 0.3) {
+          boxes.push({
+            xmin: x, ymin: y,
+            xmax: Math.min(x + patchSize, CANVAS_W),
+            ymax: Math.min(y + patchSize, CANVAS_H),
+            label: cls.label,
+            confidence: Math.round(maxVal * 100) / 100
+          });
+        }
+      }
+    }
+    imgTensor.dispose();
+    model.dispose();
+    
+    ELS.yoloBadge.textContent = 'Found ' + boxes.length + ' items';
+  } catch(e) {
+    console.error('[DETECT] Model failed:', e.message || e);
+    ELS.yoloBadge.textContent = 'Detection error';
+    boxes = []; // Empty — user can add manually
+  }
+  updateAll();
 }
 
 var SCENARIOS = {

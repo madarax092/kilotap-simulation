@@ -105,6 +105,11 @@
       <div class="yolo-legend">
         <span>Drag boxes to move. Drag corners to resize.</span>
       </div>
+      <div class="slider-group" style="display:flex;align-items:center;gap:8px;flex-shrink:0;width:100%;padding:4px 0;">
+        <span style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Tau</span>
+        <input type="range" id="tauSlider" min="0.05" max="0.95" step="0.01" value="0.40" style="flex:1;accent-color:#2563eb;">
+        <span style="font-size:11px;font-weight:600;color:#e5c07b;font-variant-numeric:tabular-nums;font-family:'SF Mono','Consolas',monospace;min-width:36px;text-align:right;" id="tauValue">0.40</span>
+      </div>
     </div>
   </div>
 
@@ -438,7 +443,7 @@
 </script>
 
 <!-- Google Maps API -->
-<script src="https://maps.googleapis.com/maps/api/js?key=*** async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAN_eIuvNLgdF0RO1RuveI-0F_I6WOQAVI&callback=initMap" async defer></script>
 
 </body>
 </html>

@@ -1,0 +1,60 @@
+{
+  "width": 640,
+  "height": 420,
+  "boxes": [
+    {
+      "xmin": 30,
+      "ymin": 160,
+      "xmax": 160,
+      "ymax": 290,
+      "label": "cardboard",
+      "confidence": 0.91,
+      "color": "#e5c07b"
+    },
+    {
+      "xmin": 170,
+      "ymin": 200,
+      "xmax": 270,
+      "ymax": 300,
+      "label": "plastic",
+      "confidence": 0.91,
+      "color": "#c678dd"
+    },
+    {
+      "xmin": 310,
+      "ymin": 120,
+      "xmax": 430,
+      "ymax": 240,
+      "label": "metal",
+      "confidence": 0.91,
+      "color": "#abb2bf"
+    },
+    {
+      "xmin": 450,
+      "ymin": 170,
+      "xmax": 540,
+      "ymax": 260,
+      "label": "glass",
+      "confidence": 0.82,
+      "color": "#56b6c2"
+    },
+    {
+      "xmin": 60,
+      "ymin": 290,
+      "xmax": 210,
+      "ymax": 390,
+      "label": "paper",
+      "confidence": 0.84,
+      "color": "#98c379"
+    },
+    {
+      "xmin": 260,
+      "ymin": 280,
+      "xmax": 390,
+      "ymax": 390,
+      "label": "trash",
+      "confidence": 0.9,
+      "color": "#e06c75"
+    }
+  ]
+}

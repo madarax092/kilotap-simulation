@@ -164,12 +164,40 @@
   const H = canvas.height;
   const CANVAS_AREA = 700 * 933;  // = 653100
 
-  // Junk: appliances, metal, electronics, furniture, vehicles
-  const JUNK_COCO = new Set(['refrigerator','oven','microwave','toaster','sink','bicycle','motorcycle','car','truck','chair','couch','bed','dining table','tv','laptop','keyboard','cell phone','clock','vase','backpack','umbrella','suitcase']);
-  const CONFIDENCE_THRESHOLD = 0.50;
+  // Philippine Junk Shop Classification — based on actual Davao/PH junkshop buy lists
+  // JUNK (high value, heavy — requires hauling truck): metals, appliances, electronics, vehicle parts
+  const PH_JUNK = new Set([
+    'refrigerator','aircon','washing_machine','electric_fan','microwave','oven','toaster','water_pump',
+    'tv','laptop','keyboard','cell phone','cpu','monitor',
+    'bicycle','motorcycle','tricycle','car','truck',
+    'chair','couch','bed','dining table','sink','vase','clock',
+    'scrap_metal','copper_wire','aluminum','stainless','battery','iron_bar'
+  ]);
 
-  function classifyItem(label) {
-    if (JUNK_COCO.has(label)) return 'junk';
+  // Filipino term labels for display
+  const PH_LABELS = {
+    'refrigerator':'Refrigerator (pridyider)','aircon':'Aircon','washing_machine':'Washing Machine',
+    'electric_fan':'Electric Fan','microwave':'Microwave','oven':'Oven','toaster':'Toaster',
+    'water_pump':'Water Pump','tv':'TV','laptop':'Laptop','keyboard':'Keyboard',
+    'cell phone':'Cellphone','cpu':'CPU/Computer','monitor':'Monitor',
+    'bicycle':'Bicycle','motorcycle':'Motorcycle (motor)','tricycle':'Tricycle Parts',
+    'car':'Car Parts','truck':'Truck Parts',
+    'chair':'Metal Chair (silya)','couch':'Sofa','bed':'Bed Frame (kama)',
+    'dining table':'Table','sink':'Sink (lababo)','vase':'Vase','clock':'Clock',
+    'scrap_metal':'Scrap Metal (bakal)','copper_wire':'Copper Wire (tanso)',
+    'aluminum':'Aluminum','stainless':'Stainless','battery':'Car Battery (baterya)',
+    'iron_bar':'Iron Bar (baras)',
+    'cardboard':'Carton (karton)','paper':'Paper (papel)','newspaper':'Newspaper (dyaryo)',
+    'pet_bottle':'PET Bottle (bote)','plastic_bag':'Plastic Bag','hard_plastic':'Hard Plastic',
+    'glass_bottle':'Glass Bottle (bote)','mixed_paper':'Mixed Paper','magazine':'Magazine',
+    'bottle':'Bottle (bote)','book':'Book (libro)','backpack':'Bag','umbrella':'Payong',
+    'potted plant':'Plant','person':'Person'
+  };
+
+  function phLabel(label) { return PH_LABELS[label] || label; }
+
+  function classifyPhilippine(label) {
+    if (PH_JUNK.has(label)) return 'junk';
     return 'waste';
   }
 
@@ -214,8 +242,8 @@ async function runRealDetection() {
       boxes = predictions.map(p => ({
         xmin: Math.max(0, p.bbox[0]), ymin: Math.max(0, p.bbox[1]),
         xmax: Math.min(W, p.bbox[0] + p.bbox[2]), ymax: Math.min(H, p.bbox[1] + p.bbox[3]),
-        label: p.class, category: classifyItem(p.class),
-        confidence: round(p.score, 2), color: classifyItem(p.class) === 'junk' ? '#e06c75' : '#61afef'
+        label: phLabel(p.class), category: classifyPhilippine(p.class),
+        confidence: round(p.score, 2), color: classifyPhilippine(p.class) === 'junk' ? '#e06c75' : '#61afef'
       }));
       if (boxes.length === 0) {
         // Fallback: if COCO-SSD finds nothing (unlikely but possible), use heuristic
@@ -231,11 +259,13 @@ async function runRealDetection() {
 
   function getFallbackBoxes() {
     return [
-      {xmin:30,ymin:160,xmax:160,ymax:290,label:'cardboard',category:'waste',confidence:0.87,color:'#61afef'},
-      {xmin:277,ymin:473,xmax:466,ymax:714,label:'cardboard_box',category:'waste',confidence:0.85,color:'#61afef'},
-      {xmin:519,ymin:400,xmax:647,ymax:557,label:'refrigerator',category:'junk',confidence:0.88,color:'#e06c75'},
+      {xmin:519,ymin:400,xmax:647,ymax:557,label:'refrigerator (pridyider)',category:'junk',confidence:0.88,color:'#e06c75'},
       {xmin:597,ymin:342,xmax:685,ymax:430,label:'appliance',category:'junk',confidence:0.82,color:'#e06c75'},
-      {xmin:145,ymin:408,xmax:277,ymax:517,label:'metal_frame',category:'junk',confidence:0.76,color:'#e06c75'},
+      {xmin:145,ymin:408,xmax:277,ymax:517,label:'scrap_metal (bakal)',category:'junk',confidence:0.76,color:'#e06c75'},
+      {xmin:430,ymin:466,xmax:481,ymax:524,label:'bicycle',category:'junk',confidence:0.84,color:'#e06c75'},
+      {xmin:277,ymin:473,xmax:466,ymax:714,label:'carton (karton)',category:'waste',confidence:0.85,color:'#61afef'},
+      {xmin:30,ymin:160,xmax:160,ymax:290,label:'cardboard',category:'waste',confidence:0.87,color:'#61afef'},
+      {xmin:641,ymin:451,xmax:700,ymax:561,label:'plastic_bag',category:'waste',confidence:0.80,color:'#61afef'},
     ];
   }
 
@@ -243,7 +273,7 @@ async function runRealDetection() {
 
   // --- Math ---
   function getCategory(label) {
-    if (JUNK_COCO.has(label)) return 'junk';
+    if (PH_JUNK.has(label)) return 'junk';
     return 'waste';
   }
 

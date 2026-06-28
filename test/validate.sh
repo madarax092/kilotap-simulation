@@ -102,9 +102,9 @@ else
   echo "OK"
 fi
 
-# 11. JUNK_COCO present (real detection)
-echo -n "[11] JUNK_COCO labels: "
-if grep -q 'JUNK_COCO' "$FILE"; then
+# 11. PH_JUNK present (Philippine classification)
+echo -n "[11] PH_JUNK labels: "
+if grep -q 'PH_JUNK' "$FILE" && grep -q 'classifyPhilippine' "$FILE"; then
   echo "OK"
 else
   echo "FAIL"

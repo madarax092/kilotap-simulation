@@ -41,8 +41,8 @@
 
   /* Maps */
   #panel-maps { grid-area: maps; }
-  #panel-maps .panel-body { padding: 0; background: #242428; }
-  #map-container { width: 100%; height: 100%; min-height: 200px; position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+  #panel-maps .panel-body { padding: 0; background: #242428; align-items: stretch; }
+  #map-container { flex: 1; min-height: 200px; }
 
   /* Map controls */
   #map-controls { position: absolute; top: 8px; left: 8px; z-index: 1; display: flex; gap: 4px; }
@@ -163,7 +163,7 @@
   const CANVAS_AREA = 700 * 933;  // = 653100
 
   // Junk categories: scrap metal, appliances, construction debris, bulky items
-  const JUNK_LABELS = new Set(['scrap_metal','refrigerator','washing_machine','industrial_steel_drum','appliance','metal_pipe','copper_wire','iron_bar']);
+  const JUNK_LABELS = new Set(['scrap_metal','refrigerator','washing_machine','industrial_steel_drum','appliance','metal_pipe','copper_wire','iron_bar','dishwasher','metal_frame','bicycle_wheel','bbq_grill']);
   // Waste categories: paper, plastic, regular household trash
   const WASTE_LABELS = new Set(['pet_bottle','cardboard','paper','plastic_bag','aluminum_can','glass_bottle','newspaper','mixed_plastic','organic_waste']);
 

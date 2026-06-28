@@ -311,6 +311,7 @@
   let draggingBox = null, resizingBox = null, resizeCorner = null, dragStartX = 0, dragStartY = 0, dragOrigBox = null, selectedIndex = null, hoveredHandle = null;
 
   function redraw() {
+    if (!bgImageData) return;  // Photo not loaded yet — skip
     ctx.putImageData(bgImageData, 0, 0);
     boxes.forEach((b, idx) => {
       const w = b.xmax - b.xmin, h = b.ymax - b.ymin, isSel = idx === selectedIndex;

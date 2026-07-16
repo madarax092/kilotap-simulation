@@ -140,13 +140,19 @@ html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; backg
     </div>
     <div class="panel-body">
       <div id="pipeline">
-        <div class="pipe-step" id="step-snap"><div class="step-icon">📸</div><div class="step-title">Snapshot</div><div class="step-val" id="pipe-snap">—</div></div>
+        <div class="pipe-step" id="step-snap"><div class="step-icon">📸</div><div class="step-title">Scrap Capture<br><small>User Snapshot</small></div><div class="step-val" id="pipe-snap">—</div></div>
         <div class="pipe-arrow">→</div>
-        <div class="pipe-step" id="step-yolo"><div class="step-icon">🔍</div><div class="step-title">YOLOv8n + MobileNetV2<br><small>Feature Extraction</small></div><div class="step-val" id="pipe-yolo">—</div></div>
+        <div class="pipe-step" id="step-yolo"><div class="step-icon">🔍</div><div class="step-title">YOLOv8n<br><small>Object Detection</small></div><div class="step-val" id="pipe-yolo">—</div></div>
         <div class="pipe-arrow">→</div>
-        <div class="pipe-step" id="step-weight"><div class="step-icon">⚖️</div><div class="step-title">Weight Lookup</div><div class="step-val" id="pipe-weight">—</div></div>
+        <div class="pipe-step" id="step-mbn"><div class="step-icon">🧠</div><div class="step-title">MobileNetV2<br><small>Classification</small></div><div class="step-val" id="pipe-mbn">—</div></div>
         <div class="pipe-arrow">→</div>
-        <div class="pipe-step" id="step-route"><div class="step-icon">🚛</div><div class="step-title">Google Maps Dispatch</div><div class="step-val" id="pipe-route">—</div></div>
+        <div class="pipe-step" id="step-weight"><div class="step-icon">⚖️</div><div class="step-title">Weight Lookup<br><small>Object Data</small></div><div class="step-val" id="pipe-weight">—</div></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step" id="step-capacity"><div class="step-icon">🚛</div><div class="step-title">Capacity Logic<br><small>Vehicle Booking</small></div><div class="step-val" id="pipe-capacity">—</div></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step" id="step-haversine"><div class="step-icon">📍</div><div class="step-title">Haversine Scoring<br><small>Proximity Matching</small></div><div class="step-val" id="pipe-haversine">—</div></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step" id="step-dispatch"><div class="step-icon">✅</div><div class="step-title">Dispatch<br><small>Top 3 Matches</small></div><div class="step-val" id="pipe-dispatch">—</div></div>
       </div>
       <div class="card">
         <div class="card-label">Omega</div>
@@ -207,9 +213,13 @@ var ELS = {
   vehicleCard: $('vehicle-card'),
   // Pipeline
   pipeSnap: $('pipe-snap'), pipeYolo: $('pipe-yolo'),
-  pipeWeight: $('pipe-weight'), pipeRoute: $('pipe-route'),
+  pipeMbn: $('pipe-mbn'), pipeWeight: $('pipe-weight'),
+  pipeCapacity: $('pipe-capacity'), pipeHaversine: $('pipe-haversine'),
+  pipeDispatch: $('pipe-dispatch'),
   stepSnap: $('step-snap'), stepYolo: $('step-yolo'),
-  stepWeight: $('step-weight'), stepRoute: $('step-route'),
+  stepMbn: $('step-mbn'), stepWeight: $('step-weight'),
+  stepCapacity: $('step-capacity'), stepHaversine: $('step-haversine'),
+  stepDispatch: $('step-dispatch'),
 };
 
 // ======================================================================
@@ -581,14 +591,31 @@ function computeTotalWeight(boxes) {
 
 /** Update pipeline steps with live values */
 function updatePipeline(boxes, totalWeight, decision) {
+  var top3 = getTop3();
   ELS.pipeSnap.textContent = boxes.length + ' items';
   ELS.stepSnap.className = 'pipe-step done';
   ELS.pipeYolo.textContent = boxes.length + ' detected';
   ELS.stepYolo.className = 'pipe-step done';
+  ELS.pipeMbn.textContent = boxes.length + ' classified';
+  ELS.stepMbn.className = 'pipe-step done';
   ELS.pipeWeight.textContent = totalWeight.toFixed(1) + ' kg';
   ELS.stepWeight.className = 'pipe-step done';
-  ELS.pipeRoute.textContent = decision.vehicle + ' — ' + decision.reason;
-  ELS.stepRoute.className = totalWeight > 0 ? 'pipe-step active' : 'pipe-step';
+  ELS.pipeCapacity.textContent = decision.vehicle;
+  ELS.stepCapacity.className = 'pipe-step active';
+  ELS.pipeHaversine.textContent = top3 + ' km range';
+  ELS.stepHaversine.className = totalWeight > 0 ? 'pipe-step active' : 'pipe-step';
+  ELS.pipeDispatch.textContent = 'Top ' + top3 + ' matchers';
+  ELS.stepDispatch.className = totalWeight > 0 ? 'pipe-step active' : 'pipe-step';
+}
+
+function getTop3() {
+  var hLat = 7.071, hLng = 125.613;
+  var comp = COLLECTORS.filter(function(c) { return c.vehicle === currentVehicle; });
+  if (comp.length === 0) comp = COLLECTORS;
+  var last = comp.sort(function(a,b) { return haversine(hLat,hLng,a.lat,a.lng) - haversine(hLat,hLng,b.lat,b.lng); }).slice(0,3);
+  var avg = 0;
+  last.forEach(function(c) { avg += haversine(hLat,hLng,c.lat,c.lng); });
+  return last.length > 0 ? (avg / last.length) : 0;
 }
 
 /** Update DOM elements with computed values */

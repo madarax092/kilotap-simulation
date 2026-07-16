@@ -80,6 +80,26 @@ html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; backg
   #app { grid-template-columns: 1fr; grid-template-rows: auto auto auto; grid-template-areas: 'yolo' 'maps' 'dash'; }
   #collector-overlay { max-height: 120px; }
 }
+
+/* ===== PIPELINE OVERLAY ===== */
+#pipeline-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f5f5f5; z-index:9999; flex-direction:column; align-items:center; justify-content:center; font-family:'Segoe UI',system-ui,sans-serif; }
+#pipeline-overlay.show { display:flex; }
+.pl-card { background:#fff; border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,0.08); padding:40px 32px; text-align:center; max-width:380px; width:90%; }
+.pl-card .pl-icon { font-size:64px; margin-bottom:16px; }
+.pl-card .pl-title { font-size:22px; font-weight:700; color:#1a1a1a; margin-bottom:4px; }
+.pl-card .pl-sub { font-size:13px; color:#888; margin-bottom:20px; }
+.pl-card .pl-val { font-size:28px; font-weight:800; color:#00A86B; margin-bottom:24px; }
+.pl-dots { display:flex; gap:6px; margin-bottom:28px; }
+.pl-dots .dot { width:10px; height:10px; border-radius:50%; background:#ddd; transition:background 0.3s; }
+.pl-dots .dot.on { background:#00A86B; }
+.pl-dots .dot.done { background:#98c379; }
+.pl-btns { display:flex; gap:12px; justify-content:center; }
+.pl-btns button { padding:10px 24px; border:none; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; }
+.pl-btns .pl-prev { background:#e0e0e0; color:#555; }
+.pl-btns .pl-next, .pl-btns .pl-done { background:#00A86B; color:#fff; }
+.pl-btns button:disabled { opacity:0.4; cursor:default; }
+#pl-close { position:absolute; top:20px; right:24px; background:none; border:none; font-size:24px; color:#999; cursor:pointer; }
+
 </style>
 </head>
 <body>
@@ -646,8 +666,9 @@ function updatePipeline(boxes, totalWeight, decision) {
   ELS.pipeEta.textContent = top5.toFixed(1) + ' min';
   ELS.pipeDispatch.textContent = 'Top 5 matched';
   pipelineData = { boxes: boxes, totalWeight: totalWeight, decision: decision, top5: top5 };
-  pipelineCurrentStep = 6; // Auto-advance to last step on new detection
+  pipelineCurrentStep = 6;
   renderPipelineStep();
+  plOpen(boxes, totalWeight, decision);
   setTimeout(function() {
     // Pulse animation on current step
     var steps = [ELS.stepSnap, ELS.stepMbn, ELS.stepYolo, ELS.stepWeight, ELS.stepCapacity, ELS.stepEta, ELS.stepDispatch];
@@ -915,6 +936,54 @@ var PHOTOS = {
 };
 var PHOTO_PRESETS = {"backyard": [{"xmin": 515, "ymin": 395, "xmax": 645, "ymax": 555, "label": "refrigerator", "confidence": 0.88}, {"xmin": 595, "ymin": 338, "xmax": 685, "ymax": 428, "label": "appliance", "confidence": 0.82}, {"xmin": 140, "ymin": 405, "xmax": 278, "ymax": 520, "label": "scrap_metal", "confidence": 0.76}, {"xmin": 428, "ymin": 462, "xmax": 482, "ymax": 526, "label": "bicycle", "confidence": 0.84}, {"xmin": 272, "ymin": 470, "xmax": 468, "ymax": 715, "label": "cardboard_box", "confidence": 0.85}, {"xmin": 28, "ymin": 158, "xmax": 162, "ymax": 292, "label": "cardboard_box", "confidence": 0.87}, {"xmin": 638, "ymin": 448, "xmax": 700, "ymax": 562, "label": "plastic_bag", "confidence": 0.8}], "electronics": [{"xmin": 50, "ymin": 80, "xmax": 280, "ymax": 380, "label": "cpu", "confidence": 0.92}, {"xmin": 300, "ymin": 100, "xmax": 550, "ymax": 400, "label": "tv", "confidence": 0.85}, {"xmin": 550, "ymin": 120, "xmax": 680, "ymax": 350, "label": "cpu", "confidence": 0.88}, {"xmin": 80, "ymin": 400, "xmax": 300, "ymax": 650, "label": "cpu", "confidence": 0.9}, {"xmin": 320, "ymin": 420, "xmax": 600, "ymax": 700, "label": "tv", "confidence": 0.87}, {"xmin": 80, "ymin": 670, "xmax": 400, "ymax": 900, "label": "cpu", "confidence": 0.83}], "monitors": [{"xmin": 50, "ymin": 100, "xmax": 300, "ymax": 350, "label": "tv", "confidence": 0.91}, {"xmin": 320, "ymin": 80, "xmax": 600, "ymax": 350, "label": "tv", "confidence": 0.89}, {"xmin": 50, "ymin": 370, "xmax": 300, "ymax": 620, "label": "tv", "confidence": 0.93}, {"xmin": 320, "ymin": 370, "xmax": 600, "ymax": 620, "label": "tv", "confidence": 0.86}, {"xmin": 50, "ymin": 640, "xmax": 300, "ymax": 900, "label": "tv", "confidence": 0.9}, {"xmin": 320, "ymin": 640, "xmax": 600, "ymax": 900, "label": "tv", "confidence": 0.88}], "towers": [{"xmin": 50, "ymin": 60, "xmax": 200, "ymax": 250, "label": "cpu", "confidence": 0.94}, {"xmin": 220, "ymin": 50, "xmax": 400, "ymax": 250, "label": "cpu", "confidence": 0.91}, {"xmin": 420, "ymin": 60, "xmax": 600, "ymax": 250, "label": "cpu", "confidence": 0.89}, {"xmin": 50, "ymin": 270, "xmax": 200, "ymax": 470, "label": "cpu", "confidence": 0.92}, {"xmin": 220, "ymin": 270, "xmax": 400, "ymax": 470, "label": "cpu", "confidence": 0.87}, {"xmin": 420, "ymin": 270, "xmax": 600, "ymax": 470, "label": "cpu", "confidence": 0.9}], "metal_pile": [{"label": "metal", "xmin": 50, "ymin": 40, "xmax": 229, "ymax": 174, "confidence": 0.82}, {"label": "metal", "xmin": 350, "ymin": 60, "xmax": 503, "ymax": 175, "confidence": 0.82}, {"label": "metal", "xmin": 150, "ymin": 250, "xmax": 278, "ymax": 346, "confidence": 0.82}, {"label": "plastic", "xmin": 500, "ymin": 50, "xmax": 602, "ymax": 126, "confidence": 0.82}, {"label": "glass", "xmin": 420, "ymin": 300, "xmax": 522, "ymax": 376, "confidence": 0.82}, {"label": "paper", "xmin": 50, "ymin": 400, "xmax": 152, "ymax": 476, "confidence": 0.82}], "mixed_waste": [{"label": "cardboard", "xmin": 30, "ymin": 30, "xmax": 234, "ymax": 183, "confidence": 0.82}, {"label": "plastic", "xmin": 380, "ymin": 20, "xmax": 533, "ymax": 135, "confidence": 0.82}, {"label": "paper", "xmin": 150, "ymin": 300, "xmax": 278, "ymax": 396, "confidence": 0.82}, {"label": "trash", "xmin": 500, "ymin": 200, "xmax": 653, "ymax": 315, "confidence": 0.82}, {"label": "glass", "xmin": 30, "ymin": 300, "xmax": 158, "ymax": 396, "confidence": 0.82}, {"label": "metal", "xmin": 500, "ymin": 350, "xmax": 602, "ymax": 426, "confidence": 0.82}], "appliance_scrap": [{"label": "metal", "xmin": 80, "ymin": 30, "xmax": 310, "ymax": 202, "confidence": 0.82}, {"label": "metal", "xmin": 350, "ymin": 40, "xmax": 529, "ymax": 174, "confidence": 0.82}, {"label": "metal", "xmin": 150, "ymin": 200, "xmax": 303, "ymax": 315, "confidence": 0.82}, {"label": "plastic", "xmin": 500, "ymin": 100, "xmax": 602, "ymax": 176, "confidence": 0.82}, {"label": "cardboard", "xmin": 50, "ymin": 350, "xmax": 152, "ymax": 426, "confidence": 0.82}, {"label": "trash", "xmin": 450, "ymin": 300, "xmax": 552, "ymax": 376, "confidence": 0.82}]};
 
+
+// PIPELINE OVERLAY — Full-screen KiloTap-style slideshow
+var plStep = 0, plData = null;
+var PL_STEPS = [
+  ['📸','Scrap Capture','User Snapshot',function(d){return d.boxes.length+' items';}],
+  ['🧠','MobileNetV2','Feature Extraction',function(d){return d.boxes.length+' features';}],
+  ['🔍','YOLOv8n','Object Detection',function(d){return d.boxes.length+' detected';}],
+  ['⚖️','Weight Lookup','Object Data',function(d){return d.total.toFixed(1)+' kg';}],
+  ['🚛','Capacity Logic','Vehicle Booking',function(d){return d.vehicle;}],
+  ['🗺️','Google Maps ETA','Estimated Arrival',function(d){return d.eta.toFixed(1)+' min';}],
+  ['✅','Dispatch','Top 5 Matches',function(d){return 'Top 5 matched';}],
+];
+function plOpen(boxes, totalWeight, decision) {
+  plData = {boxes:boxes,total:totalWeight,vehicle:decision.vehicle,eta:getTop5()};
+  plStep = 0; plRender();
+  document.getElementById('pipeline-overlay').classList.add('show');
+  var d=''; for(var i=0;i<7;i++) d+='<span class="dot'+(i===0?' on':'')+'"></span>';
+  document.getElementById('pl-dots').innerHTML=d;
+  document.getElementById('pl-done').style.display='none';
+  document.getElementById('pl-next').style.display='inline-block';
+}
+function plClose(){document.getElementById('pipeline-overlay').classList.remove('show');}
+function plNav(d){plStep+=d;if(plStep<0)plStep=0;if(plStep>6)plStep=6;plRender();}
+function plRender(){
+  if(!plData)return;
+  var s=PL_STEPS[plStep],v=s[3](plData);
+  document.getElementById('pl-card').innerHTML='<div class="pl-icon">'+s[0]+'</div><div class="pl-title">'+s[1]+'</div><div class="pl-sub">'+s[2]+'</div><div class="pl-val">'+v+'</div>';
+  var dots=document.querySelectorAll('#pl-dots .dot');
+  for(var i=0;i<dots.length;i++)dots[i].className='dot'+(i===plStep?' on':(i<plStep?' done':''));
+  document.getElementById('pl-prev').disabled=(plStep===0);
+  var last=(plStep===6);
+  document.getElementById('pl-next').style.display=last?'none':'inline-block';
+  document.getElementById('pl-done').style.display=last?'inline-block':'none';
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')plClose();});
+
 </script>
+
+<div id="pipeline-overlay">
+  <button id="pl-close" onclick="plClose()">✕</button>
+  <div class="pl-card" id="pl-card"></div>
+  <div class="pl-dots" id="pl-dots"></div>
+  <div class="pl-btns">
+    <button class="pl-prev" id="pl-prev" onclick="plNav(-1)">← Prev</button>
+    <button class="pl-next" id="pl-next" onclick="plNav(1)">Next →</button>
+    <button class="pl-done" id="pl-done" onclick="plClose()" style="display:none;">Done ✓</button>
+  </div>
+</div>
+
 </body>
 </html>

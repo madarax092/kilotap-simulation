@@ -62,6 +62,10 @@ html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; backg
 .pipe-step .step-title { font-size: 9px; text-transform: uppercase; letter-spacing: 0.3px; color: #888; }
 .pipe-step .step-val { font-size: 11px; font-weight: 600; color: #e0e0e0; margin-top: 1px; }
 .pipe-arrow { display: flex; align-items: center; color: #444; font-size: 12px; padding: 0 2px; }
+.pipe-step.dim { opacity: 0.3; filter: grayscale(0.5); }
+#pipeline-nav { display: flex; justify-content: center; gap: 8px; margin-bottom: 6px; }
+#pipeline-nav .btn { padding: 4px 14px; background: #2563eb; border: none; border-radius: 3px; color: #fff; font-size: 11px; cursor: pointer; }
+#pipeline-nav .btn:disabled { opacity: 0.3; cursor: default; }
 #panel-dash .panel-body { padding: 10px 12px; display: flex; gap: 10px; flex-wrap: wrap; }
 .card { flex: 1; min-width: 100px; padding: 8px 12px; background: #18181c; border: 1px solid #2a2a30; border-radius: 4px; }
 .card-label { font-size: 10px; text-transform: uppercase; color: #888; letter-spacing: 0.5px; margin-bottom: 4px; }
@@ -158,6 +162,11 @@ html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; backg
         <div class="pipe-step" id="step-eta"><div class="step-icon">🗺️</div><div class="step-title">Google Maps ETA<br><small>Estimated Arrival</small></div><div class="step-val" id="pipe-eta">—</div></div>
         <div class="pipe-arrow">→</div>
         <div class="pipe-step" id="step-dispatch"><div class="step-icon">✅</div><div class="step-title">Dispatch<br><small>Top 5 Matches</small></div><div class="step-val" id="pipe-dispatch">—</div></div>
+      </div>
+      <div id="pipeline-nav">
+        <button class="btn" id="btn-prev" onclick="stepNav(-1)" disabled>← Prev</button>
+        <span id="step-label" style="color:#888;font-size:11px;align-self:center;">Step 1/7</span>
+        <button class="btn" id="btn-next" onclick="stepNav(1)">Next →</button>
       </div>
       <div class="card">
         <div class="card-label">Omega</div>
@@ -595,25 +604,46 @@ function computeTotalWeight(boxes) {
 }
 
 /** Update pipeline steps with live values */
+var pipelineCurrentStep = 0;
+var pipelineData = null;
+
+function stepNav(dir) {
+  pipelineCurrentStep += dir;
+  if (pipelineCurrentStep < 0) pipelineCurrentStep = 0;
+  if (pipelineCurrentStep > 6) pipelineCurrentStep = 6;
+  renderPipelineStep();
+}
+
+function renderPipelineStep() {
+  if (!pipelineData) return;
+  var d = pipelineData;
+  var steps = [ELS.stepSnap, ELS.stepMbn, ELS.stepYolo, ELS.stepWeight, ELS.stepCapacity, ELS.stepEta, ELS.stepDispatch];
+  steps.forEach(function(el, i) {
+    el.className = (i === pipelineCurrentStep) ? 'pipe-step done pulse' : (i < pipelineCurrentStep ? 'pipe-step done dim' : 'pipe-step dim');
+  });
+  document.getElementById('btn-prev').disabled = (pipelineCurrentStep === 0);
+  document.getElementById('btn-next').disabled = (pipelineCurrentStep === 6);
+  document.getElementById('step-label').textContent = 'Step ' + (pipelineCurrentStep + 1) + '/7';
+}
+
 function updatePipeline(boxes, totalWeight, decision) {
   var top5 = getTop5();
-  var steps = [
-    { el: ELS.stepSnap, val: ELS.pipeSnap, text: boxes.length + ' items', delay: 0 },
-    { el: ELS.stepMbn, val: ELS.pipeMbn, text: boxes.length + ' features', delay: 200 },
-    { el: ELS.stepYolo, val: ELS.pipeYolo, text: boxes.length + ' detected', delay: 400 },
-    { el: ELS.stepWeight, val: ELS.pipeWeight, text: totalWeight.toFixed(1) + ' kg', delay: 600 },
-    { el: ELS.stepCapacity, val: ELS.pipeCapacity, text: decision.vehicle, delay: 800 },
-    { el: ELS.stepEta, val: ELS.pipeEta, text: top5.toFixed(1) + ' min', delay: 1000 },
-    { el: ELS.stepDispatch, val: ELS.pipeDispatch, text: 'Top 5 matched', delay: 1200 }
-  ];
-  steps.forEach(function(s) {
-    s.val.textContent = s.text;
-    s.el.className = 'pipe-step done';
-    setTimeout(function() {
-      s.el.classList.add('pulse');
-      setTimeout(function() { s.el.classList.remove('pulse'); }, 600);
-    }, s.delay);
-  });
+  ELS.pipeSnap.textContent = boxes.length + ' items';
+  ELS.pipeMbn.textContent = boxes.length + ' features';
+  ELS.pipeYolo.textContent = boxes.length + ' detected';
+  ELS.pipeWeight.textContent = totalWeight.toFixed(1) + ' kg';
+  ELS.pipeCapacity.textContent = decision.vehicle;
+  ELS.pipeEta.textContent = top5.toFixed(1) + ' min';
+  ELS.pipeDispatch.textContent = 'Top 5 matched';
+  pipelineData = { boxes: boxes, totalWeight: totalWeight, decision: decision, top5: top5 };
+  pipelineCurrentStep = 6; // Auto-advance to last step on new detection
+  renderPipelineStep();
+  setTimeout(function() {
+    // Pulse animation on current step
+    var steps = [ELS.stepSnap, ELS.stepMbn, ELS.stepYolo, ELS.stepWeight, ELS.stepCapacity, ELS.stepEta, ELS.stepDispatch];
+    steps[pipelineCurrentStep].classList.add('pulse');
+    setTimeout(function() { steps[pipelineCurrentStep].classList.remove('pulse'); }, 600);
+  }, 100);
 }
 
 function getTop5() {

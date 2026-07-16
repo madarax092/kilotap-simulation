@@ -147,15 +147,11 @@ html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; backg
       <div id="pipeline">
         <div class="pipe-step" id="step-snap"><div class="step-icon">📸</div><div class="step-title">Snapshot</div><div class="step-val" id="pipe-snap">—</div></div>
         <div class="pipe-arrow">→</div>
-        <div class="pipe-step" id="step-mbn"><div class="step-icon">🧠</div><div class="step-title">MobileNetV2 Features</div><div class="step-val" id="pipe-mbn">—</div></div>
-        <div class="pipe-arrow">→</div>
-        <div class="pipe-step" id="step-yolo"><div class="step-icon">🔍</div><div class="step-title">YOLOv8n Detection</div><div class="step-val" id="pipe-yolo">—</div></div>
+        <div class="pipe-step" id="step-yolo"><div class="step-icon">🔍</div><div class="step-title">YOLOv8n + MobileNetV2<br><small>Feature Extraction</small></div><div class="step-val" id="pipe-yolo">—</div></div>
         <div class="pipe-arrow">→</div>
         <div class="pipe-step" id="step-weight"><div class="step-icon">⚖️</div><div class="step-title">Weight Lookup</div><div class="step-val" id="pipe-weight">—</div></div>
         <div class="pipe-arrow">→</div>
-        <div class="pipe-step" id="step-vehicle"><div class="step-icon">🚛</div><div class="step-title">Vehicle Dispatch</div><div class="step-val" id="pipe-vehicle">—</div></div>
-        <div class="pipe-arrow">→</div>
-        <div class="pipe-step" id="step-route"><div class="step-icon">📍</div><div class="step-title">Google Maps Route</div><div class="step-val" id="pipe-route">—</div></div>
+        <div class="pipe-step" id="step-route"><div class="step-icon">🚛</div><div class="step-title">Google Maps Dispatch</div><div class="step-val" id="pipe-route">—</div></div>
       </div>
       <div class="card">
         <div class="card-label">Omega</div>
@@ -215,12 +211,10 @@ var ELS = {
   dashBadge: $('dash-badge'), tauSlider: $('tauSlider'), tauValue: $('tauValue'),
   vehicleCard: $('vehicle-card'),
   // Pipeline
-  pipeSnap: $('pipe-snap'), pipeMbn: $('pipe-mbn'), pipeYolo: $('pipe-yolo'),
-  pipeWeight: $('pipe-weight'), pipeVehicle: $('pipe-vehicle'),
-  pipeRoute: $('pipe-route'),
-  stepSnap: $('step-snap'), stepMbn: $('step-mbn'), stepYolo: $('step-yolo'),
-  stepWeight: $('step-weight'), stepVehicle: $('step-vehicle'),
-  stepRoute: $('step-route'),
+  pipeSnap: $('pipe-snap'), pipeYolo: $('pipe-yolo'),
+  pipeWeight: $('pipe-weight'), pipeRoute: $('pipe-route'),
+  stepSnap: $('step-snap'), stepYolo: $('step-yolo'),
+  stepWeight: $('step-weight'), stepRoute: $('step-route'),
 };
 
 // ======================================================================
@@ -593,23 +587,13 @@ function computeTotalWeight(boxes) {
 
 /** Update pipeline steps with live values */
 function updatePipeline(boxes, totalWeight, decision) {
-  // Step 1: Snapshot
   ELS.pipeSnap.textContent = boxes.length + ' items';
   ELS.stepSnap.className = 'pipe-step done';
-  // Step 2: MobileNetV2
-  ELS.pipeMbn.textContent = boxes.length + ' features';
-  ELS.stepMbn.className = 'pipe-step done';
-  // Step 3: YOLO
   ELS.pipeYolo.textContent = boxes.length + ' detected';
   ELS.stepYolo.className = 'pipe-step done';
-  // Step 4: Weight
   ELS.pipeWeight.textContent = totalWeight.toFixed(1) + ' kg';
   ELS.stepWeight.className = 'pipe-step done';
-  // Step 5: Vehicle
-  ELS.pipeVehicle.textContent = decision.vehicle;
-  ELS.stepVehicle.className = 'pipe-step active';
-  // Step 6: Route
-  ELS.pipeRoute.textContent = decision.reason;
+  ELS.pipeRoute.textContent = decision.vehicle + ' — ' + decision.reason;
   ELS.stepRoute.className = totalWeight > 0 ? 'pipe-step active' : 'pipe-step';
 }
 

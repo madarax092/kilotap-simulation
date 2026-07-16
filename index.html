@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KiloTap Simulation</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="http://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="http://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 /* ===== RESET & BASE ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -676,8 +676,21 @@ function haversine(lat1, lng1, lat2, lng2) {
 function initMap() {
   map = L.map('map').setView(DAVAO_CENTER, 12);
   L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap', maxZoom: 19
+    attribution: '&copy; OpenStreetMap', maxZoom: 19,
+    errorTileUrl: ''
   }).addTo(map);
+  
+  // If tiles fail to load after 5 seconds, show message
+  setTimeout(function() {
+    var tiles = document.querySelectorAll('.leaflet-tile');
+    if (tiles.length === 0 || tiles[0].naturalWidth === 0) {
+      var mapEl = document.getElementById('map');
+      if (mapEl) {
+        mapEl.style.background = '#1a1a1e';
+        mapEl.innerHTML = '<div style=\"display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:14px;text-align:center;\">Map tiles unavailable offline.<br>Internet connection required for map display.</div>';
+      }
+    }
+  }, 5000);
   
   // Household marker
   householdMarker = L.marker([7.071, 125.613], { draggable: true }).addTo(map);

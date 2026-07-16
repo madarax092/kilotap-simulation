@@ -369,10 +369,31 @@ function loadScenario(name) {
   boxes = JSON.parse(JSON.stringify(SCENARIOS[name]));
   selectedBox = -1;
   updateAll();
-  // Update button states
-  var btns = document.querySelectorAll('#yolo-overlay .btn');
-  btns.forEach(function(b) { b.classList.remove('active'); });
-  event.target.classList.add('active');
+}
+
+function switchPhoto(name) {
+  // Update the PHOTO to the selected base64 image
+  var img = new Image();
+  img.onload = function() {
+    ctx.drawImage(img, 0, 0, CANVAS_W, CANVAS_H);
+    bgImageData = ctx.getImageData(0, 0, CANVAS_W, CANVAS_H);
+    ELS.yoloBadge.textContent = 'Ready';
+    detectImage.src = img.src;
+    detectImage.onload = function() {
+      // Load preset boxes for this photo if they exist, else defaults
+      if (PHOTO_PRESETS[name]) {
+        boxes = JSON.parse(JSON.stringify(PHOTO_PRESETS[name]));
+      } else {
+        loadDefaultBoxes();
+      }
+      selectedBox = -1;
+      updateAll();
+    };
+  };
+  img.onerror = function() {
+    ELS.yoloBadge.textContent = 'Photo error';
+  };
+  img.src = PHOTOS[name] || PHOTO;
 }
 
 // ======================================================================

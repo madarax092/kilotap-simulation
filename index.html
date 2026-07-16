@@ -150,7 +150,7 @@ html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; backg
         <div class="pipe-arrow">→</div>
         <div class="pipe-step" id="step-capacity"><div class="step-icon">🚛</div><div class="step-title">Capacity Logic<br><small>Vehicle Booking</small></div><div class="step-val" id="pipe-capacity">—</div></div>
         <div class="pipe-arrow">→</div>
-        <div class="pipe-step" id="step-haversine"><div class="step-icon">📍</div><div class="step-title">Haversine Scoring<br><small>Proximity Matching</small></div><div class="step-val" id="pipe-haversine">—</div></div>
+        <div class="pipe-step" id="step-eta"><div class="step-icon">🗺️</div><div class="step-title">Google Maps ETA<br><small>Estimated Arrival</small></div><div class="step-val" id="pipe-eta">—</div></div>
         <div class="pipe-arrow">→</div>
         <div class="pipe-step" id="step-dispatch"><div class="step-icon">✅</div><div class="step-title">Dispatch<br><small>Top 3 Matches</small></div><div class="step-val" id="pipe-dispatch">—</div></div>
       </div>
@@ -214,11 +214,11 @@ var ELS = {
   // Pipeline
   pipeSnap: $('pipe-snap'), pipeYolo: $('pipe-yolo'),
   pipeMbn: $('pipe-mbn'), pipeWeight: $('pipe-weight'),
-  pipeCapacity: $('pipe-capacity'), pipeHaversine: $('pipe-haversine'),
+  pipeCapacity: $('pipe-capacity'), pipeEta: $('pipe-eta'),
   pipeDispatch: $('pipe-dispatch'),
   stepSnap: $('step-snap'), stepYolo: $('step-yolo'),
   stepMbn: $('step-mbn'), stepWeight: $('step-weight'),
-  stepCapacity: $('step-capacity'), stepHaversine: $('step-haversine'),
+  stepCapacity: $('step-capacity'), stepEta: $('step-eta'),
   stepDispatch: $('step-dispatch'),
 };
 
@@ -602,9 +602,9 @@ function updatePipeline(boxes, totalWeight, decision) {
   ELS.stepWeight.className = 'pipe-step done';
   ELS.pipeCapacity.textContent = decision.vehicle;
   ELS.stepCapacity.className = 'pipe-step active';
-  ELS.pipeHaversine.textContent = top3 + ' km range';
-  ELS.stepHaversine.className = totalWeight > 0 ? 'pipe-step active' : 'pipe-step';
-  ELS.pipeDispatch.textContent = 'Top ' + top3 + ' matchers';
+  ELS.pipeEta.textContent = top3.toFixed(1) + ' min';
+  ELS.stepEta.className = totalWeight > 0 ? 'pipe-step active' : 'pipe-step';
+  ELS.pipeDispatch.textContent = 'Top 3 matched';
   ELS.stepDispatch.className = totalWeight > 0 ? 'pipe-step active' : 'pipe-step';
 }
 
@@ -615,7 +615,8 @@ function getTop3() {
   var last = comp.sort(function(a,b) { return haversine(hLat,hLng,a.lat,a.lng) - haversine(hLat,hLng,b.lat,b.lng); }).slice(0,3);
   var avg = 0;
   last.forEach(function(c) { avg += haversine(hLat,hLng,c.lat,c.lng); });
-  return last.length > 0 ? (avg / last.length) : 0;
+  // Approximate ETA from haversine distance: avg speed ~25 km/h in city
+  return last.length > 0 ? (avg / last.length) * 60 / 25 : 0;
 }
 
 /** Update DOM elements with computed values */

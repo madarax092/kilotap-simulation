@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KiloTap Simulation</title>
-<link rel="stylesheet" href="http://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="http://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 /* ===== RESET & BASE ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -147,7 +147,9 @@ html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; backg
       <div id="pipeline">
         <div class="pipe-step" id="step-snap"><div class="step-icon">📸</div><div class="step-title">Snapshot</div><div class="step-val" id="pipe-snap">—</div></div>
         <div class="pipe-arrow">→</div>
-        <div class="pipe-step" id="step-yolo"><div class="step-icon">🔍</div><div class="step-title">YOLOv8n</div><div class="step-val" id="pipe-yolo">—</div></div>
+        <div class="pipe-step" id="step-mbn"><div class="step-icon">🧠</div><div class="step-title">MobileNetV2 Features</div><div class="step-val" id="pipe-mbn">—</div></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step" id="step-yolo"><div class="step-icon">🔍</div><div class="step-title">YOLOv8n Detection</div><div class="step-val" id="pipe-yolo">—</div></div>
         <div class="pipe-arrow">→</div>
         <div class="pipe-step" id="step-weight"><div class="step-icon">⚖️</div><div class="step-title">Weight Lookup</div><div class="step-val" id="pipe-weight">—</div></div>
         <div class="pipe-arrow">→</div>
@@ -213,10 +215,10 @@ var ELS = {
   dashBadge: $('dash-badge'), tauSlider: $('tauSlider'), tauValue: $('tauValue'),
   vehicleCard: $('vehicle-card'),
   // Pipeline
-  pipeSnap: $('pipe-snap'), pipeYolo: $('pipe-yolo'),
+  pipeSnap: $('pipe-snap'), pipeMbn: $('pipe-mbn'), pipeYolo: $('pipe-yolo'),
   pipeWeight: $('pipe-weight'), pipeVehicle: $('pipe-vehicle'),
   pipeRoute: $('pipe-route'),
-  stepSnap: $('step-snap'), stepYolo: $('step-yolo'),
+  stepSnap: $('step-snap'), stepMbn: $('step-mbn'), stepYolo: $('step-yolo'),
   stepWeight: $('step-weight'), stepVehicle: $('step-vehicle'),
   stepRoute: $('step-route'),
 };
@@ -594,16 +596,19 @@ function updatePipeline(boxes, totalWeight, decision) {
   // Step 1: Snapshot
   ELS.pipeSnap.textContent = boxes.length + ' items';
   ELS.stepSnap.className = 'pipe-step done';
-  // Step 2: YOLO
+  // Step 2: MobileNetV2
+  ELS.pipeMbn.textContent = boxes.length + ' features';
+  ELS.stepMbn.className = 'pipe-step done';
+  // Step 3: YOLO
   ELS.pipeYolo.textContent = boxes.length + ' detected';
   ELS.stepYolo.className = 'pipe-step done';
-  // Step 3: Weight
+  // Step 4: Weight
   ELS.pipeWeight.textContent = totalWeight.toFixed(1) + ' kg';
   ELS.stepWeight.className = 'pipe-step done';
-  // Step 4: Vehicle
+  // Step 5: Vehicle
   ELS.pipeVehicle.textContent = decision.vehicle;
   ELS.stepVehicle.className = 'pipe-step active';
-  // Step 5: Route
+  // Step 6: Route
   ELS.pipeRoute.textContent = decision.reason;
   ELS.stepRoute.className = totalWeight > 0 ? 'pipe-step active' : 'pipe-step';
 }

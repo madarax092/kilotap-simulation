@@ -50,9 +50,14 @@ html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; backg
 
 /* ===== PIPELINE ===== */
 #pipeline { display: flex; gap: 0; width: 100%; margin-bottom: 8px; }
-.pipe-step { flex: 1; text-align: center; padding: 6px 4px; background: #18181c; border: 1px solid #2a2a30; position: relative; }
-.pipe-step.active { border-color: #2563eb; }
-.pipe-step.done { border-color: #98c379; }
+.pipe-step { flex: 1; text-align: center; padding: 6px 4px; background: #18181c; border: 1px solid #2a2a30; position: relative; transition: border-color 0.4s, background 0.4s; }
+.pipe-step.active { border-color: #2563eb; background: #1a1a2e; }
+.pipe-step.done { border-color: #98c379; background: #1a2a1a; }
+.pipe-step.pulse { animation: pulse-glow 0.6s ease-in-out; }
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+  50% { box-shadow: 0 0 12px 3px rgba(37, 99, 235, 0.4); }
+}
 .pipe-step .step-icon { font-size: 14px; margin-bottom: 2px; }
 .pipe-step .step-title { font-size: 9px; text-transform: uppercase; letter-spacing: 0.3px; color: #888; }
 .pipe-step .step-val { font-size: 11px; font-weight: 600; color: #e0e0e0; margin-top: 1px; }
@@ -592,20 +597,23 @@ function computeTotalWeight(boxes) {
 /** Update pipeline steps with live values */
 function updatePipeline(boxes, totalWeight, decision) {
   var top3 = getTop3();
-  ELS.pipeSnap.textContent = boxes.length + ' items';
-  ELS.stepSnap.className = 'pipe-step done';
-  ELS.pipeYolo.textContent = boxes.length + ' detected';
-  ELS.stepYolo.className = 'pipe-step done';
-  ELS.pipeMbn.textContent = boxes.length + ' classified';
-  ELS.stepMbn.className = 'pipe-step done';
-  ELS.pipeWeight.textContent = totalWeight.toFixed(1) + ' kg';
-  ELS.stepWeight.className = 'pipe-step done';
-  ELS.pipeCapacity.textContent = decision.vehicle;
-  ELS.stepCapacity.className = 'pipe-step active';
-  ELS.pipeEta.textContent = top3.toFixed(1) + ' min';
-  ELS.stepEta.className = totalWeight > 0 ? 'pipe-step active' : 'pipe-step';
-  ELS.pipeDispatch.textContent = 'Top 3 matched';
-  ELS.stepDispatch.className = totalWeight > 0 ? 'pipe-step active' : 'pipe-step';
+  var steps = [
+    { el: ELS.stepSnap, val: ELS.pipeSnap, text: boxes.length + ' items', delay: 0 },
+    { el: ELS.stepYolo, val: ELS.pipeYolo, text: boxes.length + ' detected', delay: 200 },
+    { el: ELS.stepMbn, val: ELS.pipeMbn, text: boxes.length + ' classified', delay: 400 },
+    { el: ELS.stepWeight, val: ELS.pipeWeight, text: totalWeight.toFixed(1) + ' kg', delay: 600 },
+    { el: ELS.stepCapacity, val: ELS.pipeCapacity, text: decision.vehicle, delay: 800 },
+    { el: ELS.stepEta, val: ELS.pipeEta, text: top3.toFixed(1) + ' min', delay: 1000 },
+    { el: ELS.stepDispatch, val: ELS.pipeDispatch, text: 'Top 3 matched', delay: 1200 }
+  ];
+  steps.forEach(function(s) {
+    s.val.textContent = s.text;
+    s.el.className = 'pipe-step done';
+    setTimeout(function() {
+      s.el.classList.add('pulse');
+      setTimeout(function() { s.el.classList.remove('pulse'); }, 600);
+    }, s.delay);
+  });
 }
 
 function getTop3() {

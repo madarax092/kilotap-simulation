@@ -284,7 +284,7 @@ function phLabel(label) { return PH_LABELS[label] || label; }
 // ======================================================================
 var canvas = document.getElementById('yoloCanvas');
 canvas.width = CANVAS_W; canvas.height = CANVAS_H;
-var ctx = canvas.getContext('2d');
+var ctx = canvas.getContext('2d', {willReadFrequently: true});
 var bgImageData = null;
 var boxes = [];
 var tau = 0.40;
@@ -327,8 +327,8 @@ loadPhoto();
 // ======================================================================
 function loadDefaultBoxes() {
   boxes = [
-    { xmin: 515, ymin: 395, xmax: 645, ymax: 555, label: 'refrigerator', confidence: 0.88 },
-    { xmin: 595, ymin: 338, xmax: 685, ymax: 428, label: 'appliance', confidence: 0.82 },
+    { xmin: 150, ymin: 200, xmax: 350, ymax: 550, label: 'water_dispenser', confidence: 0.92 },
+    { xmin: 450, ymin: 180, xmax: 650, ymax: 420, label: 'window_type_aircon', confidence: 0.88 },
     { xmin: 140, ymin: 405, xmax: 278, ymax: 520, label: 'scrap_metal', confidence: 0.76 },
     { xmin: 428, ymin: 462, xmax: 482, ymax: 526, label: 'bicycle', confidence: 0.84 },
     { xmin: 272, ymin: 470, xmax: 468, ymax: 715, label: 'cardboard_box', confidence: 0.85 },
@@ -339,8 +339,8 @@ function loadDefaultBoxes() {
 
 var SCENARIOS = {
   full: [
-    { xmin: 515, ymin: 395, xmax: 645, ymax: 555, label: 'refrigerator', confidence: 0.88 },
-    { xmin: 595, ymin: 338, xmax: 685, ymax: 428, label: 'appliance', confidence: 0.82 },
+    { xmin: 150, ymin: 200, xmax: 350, ymax: 550, label: 'water_dispenser', confidence: 0.92 },
+    { xmin: 450, ymin: 180, xmax: 650, ymax: 420, label: 'window_type_aircon', confidence: 0.88 },
     { xmin: 140, ymin: 405, xmax: 278, ymax: 520, label: 'scrap_metal', confidence: 0.76 },
     { xmin: 428, ymin: 462, xmax: 482, ymax: 526, label: 'bicycle', confidence: 0.84 },
     { xmin: 272, ymin: 470, xmax: 468, ymax: 715, label: 'cardboard_box', confidence: 0.85 },
@@ -352,8 +352,8 @@ var SCENARIOS = {
     { xmin: 638, ymin: 448, xmax: 700, ymax: 562, label: 'plastic_bag', confidence: 0.80 },
   ],
   heavy: [
-    { xmin: 515, ymin: 395, xmax: 645, ymax: 555, label: 'refrigerator', confidence: 0.88 },
-    { xmin: 595, ymin: 338, xmax: 685, ymax: 428, label: 'appliance', confidence: 0.82 },
+    { xmin: 150, ymin: 200, xmax: 350, ymax: 550, label: 'water_dispenser', confidence: 0.92 },
+    { xmin: 450, ymin: 180, xmax: 650, ymax: 420, label: 'window_type_aircon', confidence: 0.88 },
     { xmin: 140, ymin: 405, xmax: 278, ymax: 520, label: 'scrap_metal', confidence: 0.76 },
     { xmin: 428, ymin: 462, xmax: 482, ymax: 526, label: 'washing_machine', confidence: 0.91 },
     { xmin: 272, ymin: 470, xmax: 468, ymax: 715, label: 'industrial_steel_drum', confidence: 0.87 },
@@ -664,8 +664,8 @@ function haversine(lat1, lng1, lat2, lng2) {
 
 function initMap() {
   map = L.map('map').setView(DAVAO_CENTER, 12);
-  L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap', maxZoom: 19,
+  L.tileLayer('//{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap France', maxZoom: 19,
     errorTileUrl: ''
   }).addTo(map);
   

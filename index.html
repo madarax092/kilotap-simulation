@@ -157,7 +157,7 @@ html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; backg
         <div class="pipe-arrow">→</div>
         <div class="pipe-step" id="step-eta"><div class="step-icon">🗺️</div><div class="step-title">Google Maps ETA<br><small>Estimated Arrival</small></div><div class="step-val" id="pipe-eta">—</div></div>
         <div class="pipe-arrow">→</div>
-        <div class="pipe-step" id="step-dispatch"><div class="step-icon">✅</div><div class="step-title">Dispatch<br><small>Top 3 Matches</small></div><div class="step-val" id="pipe-dispatch">—</div></div>
+        <div class="pipe-step" id="step-dispatch"><div class="step-icon">✅</div><div class="step-title">Dispatch<br><small>Top 5 Matches</small></div><div class="step-val" id="pipe-dispatch">—</div></div>
       </div>
       <div class="card">
         <div class="card-label">Omega</div>
@@ -596,15 +596,15 @@ function computeTotalWeight(boxes) {
 
 /** Update pipeline steps with live values */
 function updatePipeline(boxes, totalWeight, decision) {
-  var top3 = getTop3();
+  var top5 = getTop5();
   var steps = [
     { el: ELS.stepSnap, val: ELS.pipeSnap, text: boxes.length + ' items', delay: 0 },
     { el: ELS.stepMbn, val: ELS.pipeMbn, text: boxes.length + ' features', delay: 200 },
     { el: ELS.stepYolo, val: ELS.pipeYolo, text: boxes.length + ' detected', delay: 400 },
     { el: ELS.stepWeight, val: ELS.pipeWeight, text: totalWeight.toFixed(1) + ' kg', delay: 600 },
     { el: ELS.stepCapacity, val: ELS.pipeCapacity, text: decision.vehicle, delay: 800 },
-    { el: ELS.stepEta, val: ELS.pipeEta, text: top3.toFixed(1) + ' min', delay: 1000 },
-    { el: ELS.stepDispatch, val: ELS.pipeDispatch, text: 'Top 3 matched', delay: 1200 }
+    { el: ELS.stepEta, val: ELS.pipeEta, text: top5.toFixed(1) + ' min', delay: 1000 },
+    { el: ELS.stepDispatch, val: ELS.pipeDispatch, text: 'Top 5 matched', delay: 1200 }
   ];
   steps.forEach(function(s) {
     s.val.textContent = s.text;
@@ -616,14 +616,13 @@ function updatePipeline(boxes, totalWeight, decision) {
   });
 }
 
-function getTop3() {
+function getTop5() {
   var hLat = 7.071, hLng = 125.613;
   var comp = COLLECTORS.filter(function(c) { return c.vehicle === currentVehicle; });
   if (comp.length === 0) comp = COLLECTORS;
-  var last = comp.sort(function(a,b) { return haversine(hLat,hLng,a.lat,a.lng) - haversine(hLat,hLng,b.lat,b.lng); }).slice(0,3);
+  var last = comp.sort(function(a,b) { return haversine(hLat,hLng,a.lat,a.lng) - haversine(hLat,hLng,b.lat,b.lng); }).slice(0,5);
   var avg = 0;
   last.forEach(function(c) { avg += haversine(hLat,hLng,c.lat,c.lng); });
-  // Approximate ETA from haversine distance: avg speed ~25 km/h in city
   return last.length > 0 ? (avg / last.length) * 60 / 25 : 0;
 }
 

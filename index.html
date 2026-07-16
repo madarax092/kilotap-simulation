@@ -615,7 +615,17 @@ function stepNav(dir) {
 }
 
 function renderPipelineStep() {
-  if (!pipelineData) return;
+  if (!pipelineData) {
+    // Initialize with defaults so Next/Prev work before detection
+    ELS.pipeSnap.textContent = '—';
+    ELS.pipeMbn.textContent = '—';
+    ELS.pipeYolo.textContent = '—';
+    ELS.pipeWeight.textContent = '—';
+    ELS.pipeCapacity.textContent = '—';
+    ELS.pipeEta.textContent = '—';
+    ELS.pipeDispatch.textContent = '—';
+    pipelineData = { boxes: [], totalWeight: 0, decision: {vehicle:'Tricycle Sidecar'}, top5: 5 };
+  }
   var d = pipelineData;
   var steps = [ELS.stepSnap, ELS.stepMbn, ELS.stepYolo, ELS.stepWeight, ELS.stepCapacity, ELS.stepEta, ELS.stepDispatch];
   steps.forEach(function(el, i) {

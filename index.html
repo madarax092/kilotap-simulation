@@ -252,7 +252,7 @@ var DAVAO_CENTER = CONFIG.DAVAO_CENTER;
 var tau = CONFIG.TAU_DEFAULT;
 
 // Philippine junk shop classification
-var JUNK_LABELS = ['refrigerator','washing_machine','industrial_steel_drum','scrap_metal','appliance','metal_frame','bicycle','bbq_grill','microwave','oven','aircon','water_pump','electric_fan','tv','cpu','laptop','copper_wire','aluminum','stainless','battery','iron_bar'];
+var JUNK_LABELS = ['refrigerator','washing_machine','industrial_steel_drum','scrap_metal','appliance','metal_frame','bicycle','bbq_grill','microwave','oven','aircon','window_type_aircon','water_dispenser','water_pump','electric_fan','tv','cpu','laptop','copper_wire','aluminum','stainless','battery','iron_bar'];
 
 function isJunk(label) {
   return JUNK_LABELS.indexOf(label) >= 0;
@@ -267,6 +267,8 @@ var PH_LABELS = {
   'bicycle': 'Bicycle',
   'bbq_grill': 'BBQ Grill',
   'appliance': 'Appliance',
+  'window_type_aircon': 'Window Aircon',
+  'water_dispenser': 'Water Dispenser',
   'cardboard_box': 'Carton (karton)',
   'plastic_bag': 'Plastic Bag',
   'trash_can': 'Trash Can',

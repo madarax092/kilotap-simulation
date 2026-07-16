@@ -147,9 +147,9 @@ html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; backg
       <div id="pipeline">
         <div class="pipe-step" id="step-snap"><div class="step-icon">📸</div><div class="step-title">Scrap Capture<br><small>User Snapshot</small></div><div class="step-val" id="pipe-snap">—</div></div>
         <div class="pipe-arrow">→</div>
-        <div class="pipe-step" id="step-yolo"><div class="step-icon">🔍</div><div class="step-title">YOLOv8n<br><small>Object Detection</small></div><div class="step-val" id="pipe-yolo">—</div></div>
+        <div class="pipe-step" id="step-mbn"><div class="step-icon">🧠</div><div class="step-title">MobileNetV2<br><small>Feature Extraction</small></div><div class="step-val" id="pipe-mbn">—</div></div>
         <div class="pipe-arrow">→</div>
-        <div class="pipe-step" id="step-mbn"><div class="step-icon">🧠</div><div class="step-title">MobileNetV2<br><small>Classification</small></div><div class="step-val" id="pipe-mbn">—</div></div>
+        <div class="pipe-step" id="step-yolo"><div class="step-icon">🔍</div><div class="step-title">YOLOv8n<br><small>Object Detection</small></div><div class="step-val" id="pipe-yolo">—</div></div>
         <div class="pipe-arrow">→</div>
         <div class="pipe-step" id="step-weight"><div class="step-icon">⚖️</div><div class="step-title">Weight Lookup<br><small>Object Data</small></div><div class="step-val" id="pipe-weight">—</div></div>
         <div class="pipe-arrow">→</div>
@@ -599,8 +599,8 @@ function updatePipeline(boxes, totalWeight, decision) {
   var top3 = getTop3();
   var steps = [
     { el: ELS.stepSnap, val: ELS.pipeSnap, text: boxes.length + ' items', delay: 0 },
-    { el: ELS.stepYolo, val: ELS.pipeYolo, text: boxes.length + ' detected', delay: 200 },
-    { el: ELS.stepMbn, val: ELS.pipeMbn, text: boxes.length + ' classified', delay: 400 },
+    { el: ELS.stepMbn, val: ELS.pipeMbn, text: boxes.length + ' features', delay: 200 },
+    { el: ELS.stepYolo, val: ELS.pipeYolo, text: boxes.length + ' detected', delay: 400 },
     { el: ELS.stepWeight, val: ELS.pipeWeight, text: totalWeight.toFixed(1) + ' kg', delay: 600 },
     { el: ELS.stepCapacity, val: ELS.pipeCapacity, text: decision.vehicle, delay: 800 },
     { el: ELS.stepEta, val: ELS.pipeEta, text: top3.toFixed(1) + ' min', delay: 1000 },
